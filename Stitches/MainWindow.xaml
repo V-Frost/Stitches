@@ -1,0 +1,18 @@
+﻿<Window x:Class="WpfApp1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /> <!-- Рядок для кнопок -->
+            <RowDefinition Height="*" />    <!-- Рядок для Canvas -->
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Top" Grid.Row="0">
+            <Button Name="CheckButton" Content="Перевірити" Click="CheckButton_Click" Margin="5"/>
+            <Button Name="RestartButton" Content="Рестарт" Click="RestartButton_Click" Margin="5"/>
+        </StackPanel>
+
+        <Canvas Name="MyCanvas" Background="LightGray" Grid.Row="1" VerticalAlignment="Top" Margin="10"/>
+    </Grid>
+</Window>
