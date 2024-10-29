@@ -6,6 +6,8 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Linq;
 using System;
+using System.Windows.Threading;
+using System.Windows.Media.Imaging;
 
 
 namespace WpfApp1
@@ -27,7 +29,196 @@ namespace WpfApp1
             DrawGraph();
             DrawConnections();
             DisplayHints(size);
+            InitializeComponent();
+            StartTimer(); // Запуск таймера при инициализации окна
         }
+
+
+
+        private bool _showCoordinates = false;
+        private bool _hideTimer = false;
+        private bool _nightMode = false;
+
+        private DispatcherTimer _timer;
+        private int _elapsedSeconds;
+
+        private Image _pauseOverlay;
+        private bool _isPaused = false;
+
+        private void PauseButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isPaused)
+            {
+                // Снимаем паузу: показываем изображение и цифры, перезапускаем таймер
+                _pauseOverlay.Visibility = Visibility.Hidden;
+                foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
+                {
+                    hint.Visibility = Visibility.Visible;
+                }
+                _timer.Start();
+            }
+            else
+            {
+                // Ставим игру на паузу: скрываем изображение и цифры, останавливаем таймер
+                if (_pauseOverlay == null)
+                {
+                    _pauseOverlay = new Image
+                    {
+                        Source = new BitmapImage(new Uri("E:/Stitches/image/wait.png")),
+                        Stretch = Stretch.Fill,
+                        Width = MyCanvas.Width,
+                        Height = MyCanvas.Height,
+                        Visibility = Visibility.Visible
+                    };
+                    Canvas.SetLeft(_pauseOverlay, 0);
+                    Canvas.SetTop(_pauseOverlay, 0);
+                    MyCanvas.Children.Add(_pauseOverlay);
+                }
+                _pauseOverlay.Visibility = Visibility.Visible;
+
+                foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
+                {
+                    hint.Visibility = Visibility.Hidden;
+                }
+
+                _timer.Stop();
+            }
+            _isPaused = !_isPaused;
+        }
+
+
+        private void StartTimer()
+        {
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _timer.Tick += (s, e) =>
+            {
+                _elapsedSeconds++;
+                TimerText.Text = TimeSpan.FromSeconds(_elapsedSeconds).ToString(@"hh\:mm\:ss");
+            };
+            _timer.Start();
+        }
+
+        private void ResetTimer()
+        {
+            _elapsedSeconds = 0;
+            TimerText.Text = "00:00:00";
+        }
+
+        private void SetNightMode(bool isNightMode)
+        {
+            var background = isNightMode ? Brushes.Black : Brushes.White;
+            var foreground = isNightMode ? Brushes.White : Brushes.Black;
+
+            MyCanvas.Background = background;
+            TimerText.Foreground = foreground;
+            foreach (var child in MyCanvas.Children.OfType<UIElement>())
+            {
+                if (child is Border border)
+                    border.BorderBrush = foreground;
+                if (child is TextBlock textBlock)
+                    textBlock.Foreground = foreground;
+            }
+        }
+        private void ToggleShowCoordinates(bool show)
+        {
+            _showCoordinates = show;
+            ShowCoordinates(_showCoordinates);
+        }
+
+        private void ToggleHideTimer(bool hide)
+        {
+            _hideTimer = hide;
+            TimerText.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
+        }
+        private void ToggleNightMode(bool enable)
+        {
+            _nightMode = enable;
+            SetNightMode(enable);
+        }
+
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            var settingsMenu = new ContextMenu();
+
+            var showCoordsMenuItem = new MenuItem { Header = "Показывать координаты на поле", IsCheckable = true, IsChecked = _showCoordinates };
+            showCoordsMenuItem.Click += (s, ev) =>
+            {
+                _showCoordinates = !_showCoordinates;
+                ShowCoordinates(_showCoordinates);
+                showCoordsMenuItem.IsChecked = _showCoordinates;
+            };
+
+            var hideTimerMenuItem = new MenuItem { Header = "Скрыть таймер", IsCheckable = true, IsChecked = _hideTimer };
+            hideTimerMenuItem.Click += (s, ev) =>
+            {
+                _hideTimer = !_hideTimer;
+                TimerText.Visibility = _hideTimer ? Visibility.Hidden : Visibility.Visible;
+                hideTimerMenuItem.IsChecked = _hideTimer;
+            };
+
+            var nightModeMenuItem = new MenuItem { Header = "Ночной режим", IsCheckable = true, IsChecked = _nightMode };
+            nightModeMenuItem.Click += (s, ev) =>
+            {
+                _nightMode = !_nightMode;
+                SetNightMode(_nightMode);
+                nightModeMenuItem.IsChecked = _nightMode;
+            };
+
+            settingsMenu.Items.Add(showCoordsMenuItem);
+            settingsMenu.Items.Add(hideTimerMenuItem);
+            settingsMenu.Items.Add(nightModeMenuItem);
+
+            settingsMenu.PlacementTarget = SettingsButton;
+            settingsMenu.IsOpen = true;
+        }
+
+
+        private void ShowCoordinates(bool show)
+        {
+            // Удаляем старые координаты
+            var existingCoordinates = MyCanvas.Children.OfType<TextBlock>().Where(tb => tb.Tag != null && tb.Tag.ToString() == "Coordinate");
+            foreach (var coord in existingCoordinates.ToList())
+            {
+                MyCanvas.Children.Remove(coord);
+            }
+
+            if (!show) return;
+
+            // Отображаем буквенные обозначения сверху с отступом в 30 пикселей
+            for (int x = 0; x < size; x++)
+            {
+                var letter = (char)('A' + x);
+                var colCoord = new TextBlock
+                {
+                    Text = letter.ToString(),
+                    FontSize = 14,
+                    Foreground = Brushes.Gray,
+                    Tag = "Coordinate"
+                };
+                Canvas.SetLeft(colCoord, x * 40 + 15);
+                Canvas.SetTop(colCoord, -45); // Отступ на 30 пикселей от верхней границы
+                MyCanvas.Children.Add(colCoord);
+            }
+
+            // Отображаем цифровые обозначения сбоку с отступом в 30 пикселей
+            for (int y = 0; y < size; y++)
+            {
+                var rowCoord = new TextBlock
+                {
+                    Text = (y + 1).ToString(),
+                    FontSize = 14,
+                    Foreground = Brushes.Gray,
+                    Tag = "Coordinate"
+                };
+                Canvas.SetLeft(rowCoord, -45); // Отступ на 30 пикселей от левой границы
+                Canvas.SetTop(rowCoord, y * 40 + 15);
+                MyCanvas.Children.Add(rowCoord);
+            }
+        }
+
+
+
 
         private void DisplayHints(int size)
         {
@@ -74,6 +265,7 @@ namespace WpfApp1
                     }
                 }
             }
+
 
             // Відображення підказок для рядків
             for (int row = 0; row < size; row++)
@@ -442,6 +634,9 @@ namespace WpfApp1
             DisplayHints(size);
 
             _activeConnections.Clear();
+
+            ResetTimer();
+
         }
     }
 }
