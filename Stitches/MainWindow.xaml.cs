@@ -624,6 +624,25 @@ namespace WpfApp1
 
         private void RestartButton_Click(object sender, RoutedEventArgs e)
         {
+            // Если игра на паузе, снимаем её с паузы перед рестартом
+            if (_isPaused)
+            {
+                _pauseOverlay.Visibility = Visibility.Hidden;
+                foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
+                {
+                    hint.Visibility = Visibility.Visible;
+                }
+                _timer.Start();
+                _isPaused = false;
+            }
+
+            // Удаляем старый оверлей паузы, если он есть
+            if (_pauseOverlay != null)
+            {
+                MyCanvas.Children.Remove(_pauseOverlay);
+                _pauseOverlay = null;
+            }
+
             MyCanvas.Children.Clear();
             _graph = new Graph();
             _graph.GenerateLevel(size);
@@ -636,7 +655,8 @@ namespace WpfApp1
             _activeConnections.Clear();
 
             ResetTimer();
-
         }
+
+
     }
 }
