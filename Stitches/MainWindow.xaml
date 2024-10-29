@@ -13,6 +13,6 @@
             <Button Name="RestartButton" Content="Рестарт" Click="RestartButton_Click" Margin="5"/>
         </StackPanel>
 
-        <Canvas Name="MyCanvas" Background="LightGray" Grid.Row="1" VerticalAlignment="Top" Margin="10"/>
+        <Canvas Name="MyCanvas" Background="LightGray" Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"/>
     </Grid>
 </Window>

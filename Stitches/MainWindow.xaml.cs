@@ -18,11 +18,174 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
+            int cellSize = 40; // Розмір однієї клітинки в пікселях
+            MyCanvas.Width = size * cellSize;
+            MyCanvas.Height = size * cellSize;
             _graph = new Graph();
-            GenerateValidLevel(size);
+            _graph.GenerateLevel(size);
+            ValidateLevel();
             DrawGraph();
+            DrawConnections();
+            DisplayHints(size);
         }
 
+        private void DisplayHints(int size)
+        {
+            // Очищуємо попередні підказки (якщо є)
+            MyCanvas.Children.OfType<TextBlock>().ToList().ForEach(tb => MyCanvas.Children.Remove(tb));
+
+            // Масиви для зберігання підрахунку кінців з'єднань для кожного рядка та стовпця
+            var rowHints = new int[size];
+            var colHints = new int[size];
+
+            // Використовуємо HashSet для зберігання унікальних з'єднань, щоб уникнути повторного врахування
+            var uniqueConnections = new HashSet<(int, int, int, int)>();
+
+            // Проходимо по всіх клітинках і рахуємо унікальні кінці з'єднань
+            foreach (var node in _graph.Nodes)
+            {
+                foreach (var neighbor in node.Neighbors.Where(n => n.HasConnection && n.GroupID != node.GroupID))
+                {
+                    // Упорядковуємо пару клітинок для унікальності з'єднання
+                    var connection = node.X < neighbor.X || (node.X == neighbor.X && node.Y < neighbor.Y)
+                        ? (node.X, node.Y, neighbor.X, neighbor.Y)
+                        : (neighbor.X, neighbor.Y, node.X, node.Y);
+
+                    // Додаємо з'єднання до підрахунку тільки один раз
+                    if (uniqueConnections.Add(connection))
+                    {
+                        // Визначаємо, чи з'єднання знаходиться в межах одного рядка або стовпця
+                        if (node.Y == neighbor.Y) // З'єднання в одному рядку
+                        {
+                            rowHints[node.Y] += 2;
+                        }
+                        else if (node.X == neighbor.X) // З'єднання в одному стовпці
+                        {
+                            colHints[node.X] += 2;
+                        }
+                        else
+                        {
+                            // З'єднання переходить між рядками та стовпцями
+                            rowHints[node.Y] += 1;
+                            rowHints[neighbor.Y] += 1;
+                            colHints[node.X] += 1;
+                            colHints[neighbor.X] += 1;
+                        }
+                    }
+                }
+            }
+
+            // Відображення підказок для рядків
+            for (int row = 0; row < size; row++)
+            {
+                TextBlock rowHint = new TextBlock
+                {
+                    Text = rowHints[row].ToString(),
+                    FontSize = 14,
+                    Foreground = Brushes.Black
+                };
+                Canvas.SetLeft(rowHint, -20); // Розміщення зліва від рядка
+                Canvas.SetTop(rowHint, row * 40 + 15); // Розміщення на рівні середини клітинки
+                MyCanvas.Children.Add(rowHint);
+            }
+
+            // Відображення підказок для стовпців
+            for (int col = 0; col < size; col++)
+            {
+                TextBlock colHint = new TextBlock
+                {
+                    Text = colHints[col].ToString(),
+                    FontSize = 14,
+                    Foreground = Brushes.Black
+                };
+                Canvas.SetLeft(colHint, col * 40 + 15); // Розміщення над стовпцем
+                Canvas.SetTop(colHint, -20); // Розміщення на рівні середини клітинки
+                MyCanvas.Children.Add(colHint);
+            }
+        }
+
+        // Метод для з'єднання всіх сусідніх блоків
+        private void DrawConnections()
+        {
+            var visitedConnections = new HashSet<(int, int)>();
+
+            foreach (var node in _graph.Nodes)
+            {
+                // Перевіряємо, чи вже є з'єднання для цієї клітинки
+                if (node.HasConnection) continue;
+
+                foreach (var neighbor in GetNeighboringBlocks(node))
+                {
+                    // Упорядкування для унікальності пари (GroupID менший завжди йде першим)
+                    var connection = node.GroupID < neighbor.GroupID
+                        ? (node.GroupID, neighbor.GroupID)
+                        : (neighbor.GroupID, node.GroupID);
+
+                    // Перевірка, чи вже оброблено це з'єднання
+                    if (!visitedConnections.Contains(connection))
+                    {
+                        DrawConnectionLine(node, neighbor);
+                        visitedConnections.Add(connection);
+
+                        // Встановлюємо прапорці `HasConnection` для обох клітинок
+                        node.HasConnection = true;
+                        neighbor.HasConnection = true;
+                        break; // Виходимо з циклу після створення одного з'єднання
+                    }
+                }
+            }
+        }
+
+        // Метод для отримання сусідніх блоків, які мають інший GroupID
+        private List<Node> GetNeighboringBlocks(Node node)
+        {
+            List<Node> neighbors = new List<Node>();
+
+            // Верхній сусід
+            var topNeighbor = _graph.Nodes.FirstOrDefault(n => n.X == node.X && n.Y == node.Y - 1);
+            if (topNeighbor != null && topNeighbor.GroupID != node.GroupID && !topNeighbor.HasConnection)
+                neighbors.Add(topNeighbor);
+
+            // Нижній сусід
+            var bottomNeighbor = _graph.Nodes.FirstOrDefault(n => n.X == node.X && n.Y == node.Y + 1);
+            if (bottomNeighbor != null && bottomNeighbor.GroupID != node.GroupID && !bottomNeighbor.HasConnection)
+                neighbors.Add(bottomNeighbor);
+
+            // Лівий сусід
+            var leftNeighbor = _graph.Nodes.FirstOrDefault(n => n.X == node.X - 1 && n.Y == node.Y);
+            if (leftNeighbor != null && leftNeighbor.GroupID != node.GroupID && !leftNeighbor.HasConnection)
+                neighbors.Add(leftNeighbor);
+
+            // Правий сусід
+            var rightNeighbor = _graph.Nodes.FirstOrDefault(n => n.X == node.X + 1 && n.Y == node.Y);
+            if (rightNeighbor != null && rightNeighbor.GroupID != node.GroupID && !rightNeighbor.HasConnection)
+                neighbors.Add(rightNeighbor);
+
+            return neighbors;
+        }
+        // Метод для малювання лінії з'єднання між двома вузлами
+        private void DrawConnectionLine(Node node1, Node node2)
+        {
+            double cellSize = 40; // Розмір клітинки, можна налаштувати відповідно до канвасу
+
+            // Визначаємо центри клітинок
+            double x1 = node1.X * cellSize + cellSize / 2;
+            double y1 = node1.Y * cellSize + cellSize / 2;
+            double x2 = node2.X * cellSize + cellSize / 2;
+            double y2 = node2.Y * cellSize + cellSize / 2;
+
+            Line line = new Line
+            {
+                X1 = x1,
+                Y1 = y1,
+                X2 = x2,
+                Y2 = y2,
+                Stroke = Brushes.Black,
+                StrokeThickness = 2
+            };
+
+            MyCanvas.Children.Add(line);
+        }
         private void GenerateValidLevel(int size)
         {
             bool isValid = false;
@@ -275,7 +438,10 @@ namespace WpfApp1
             GenerateValidLevel(size);
 
             DrawGraph();
-            _activeConnections.Clear(); // Очищаємо всі з'єднання
+            DrawConnections();
+            DisplayHints(size);
+
+            _activeConnections.Clear();
         }
     }
 }

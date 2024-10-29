@@ -10,6 +10,7 @@ namespace WpfApp1
         public int Y { get; set; }
         public int GroupID { get; set; } = -1;
         public List<Node> Neighbors { get; set; } = new List<Node>();
+        public bool HasConnection { get; set; } = false; // Нове поле для позначення наявності з'єднання
 
         public Node(int x, int y)
         {
