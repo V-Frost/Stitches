@@ -2,57 +2,60 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Stitches" Width="550" Height="600" Background="White">
-
     <Grid>
 
         <!-- Таймер -->
         <TextBlock x:Name="TimerText" 
-           HorizontalAlignment="Center" 
-           VerticalAlignment="Top" 
-           Margin="60" 
-           FontSize="35" 
-           FontWeight="Bold" 
-           Foreground="#3c99f1"/>
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Top" 
+                   Margin="60" 
+                   FontSize="35" 
+                   FontWeight="Bold" 
+                   Foreground="#3c99f1"/>
 
-        <!-- Основное игровое поле, центрируем по горизонтали и вертикали -->
+        <!-- Основное игровое поле (Canvas), центрируем по горизонтали и вертикали -->
         <Canvas x:Name="MyCanvas" Width="450" Height="450" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,160,0,0"/>
+
+        <!-- Панель для отображения информации о количестве стежков -->
+        <StackPanel Orientation="Vertical" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,159,0" Width="331">
+            <TextBlock x:Name="TargetStitchCountText" FontSize="16" Text="Необходимое количество стежков: 0" />
+            <TextBlock x:Name="CurrentStitchCountText" FontSize="16" Text="Текущее количество стежков: 0" />
+        </StackPanel>
 
         <!-- Кнопка Рестарт -->
         <Button Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-300,0,0,85"
                 Click="RestartButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="Black">
-            <Image Source="Image\restart.png" Width="55" Height="55"/>
+            <Image Source="Image/restart.png" Width="55" Height="55"/>
         </Button>
 
-        <!-- Кнопка Перевірити -->
+        <!-- Кнопка Проверить -->
         <Button Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,85"
                 Click="CheckButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="Black">
-            <Image Source="Image\done.png" Width="55" Height="55"/>
+            <Image Source="Image/done.png" Width="55" Height="55"/>
         </Button>
 
         <!-- Кнопка Настройки -->
         <Button x:Name="SettingsButton" Width="60" Height="60" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,20,0"
                 Click="SettingsButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="Black">
-            <Image Source="Image\setings.png" Width="55" Height="55"/>
+            <Image Source="Image/setings.png" Width="55" Height="55"/>
         </Button>
 
         <!-- Кнопка Пауза -->
         <Button x:Name="PauseButton"
-        Width="60"
-        Height="60"
-        Click="PauseButton_Click"
-        Background="Transparent"
-        BorderBrush="Transparent"
-        Margin="300,0,0,85"
-        Foreground="Black"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Bottom"
-        Padding="0"
-        HorizontalContentAlignment="Stretch"
-        VerticalContentAlignment="Stretch">
-            <Image Source="Image\pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
+                Width="60"
+                Height="60"
+                Click="PauseButton_Click"
+                Background="Transparent"
+                BorderBrush="Transparent"
+                Margin="300,0,0,85"
+                Foreground="Black"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Bottom"
+                Padding="0"
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Stretch">
+            <Image Source="Image/pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
         </Button>
-
-
 
     </Grid>
 </Window>

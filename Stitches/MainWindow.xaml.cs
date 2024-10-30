@@ -30,7 +30,6 @@ namespace WpfApp1
             DrawConnections();
             DisplayHints();
             //ClearStitchesAndDots();
-            InitializeComponent();
             StartTimer(); // Запуск таймера при инициализации окна
         }
 
@@ -48,6 +47,8 @@ namespace WpfApp1
 
         private Node _startNode;
         private bool _isDragging;
+
+        private int _correctStitchCount;
 
 
         private void ClearStitchesAndDots()
@@ -311,7 +312,7 @@ namespace WpfApp1
             _initialConnections.Add((node1, node2));
 
             // Отрисовка линии и точек, как в предыдущем примере
-            Line line = new Line
+/*            Line line = new Line
             {
                 X1 = node1.X * cellSize + centerOffset,
                 Y1 = node1.Y * cellSize + centerOffset,
@@ -340,22 +341,36 @@ namespace WpfApp1
             };
             Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
             Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
-            MyCanvas.Children.Add(endDot);
+            MyCanvas.Children.Add(endDot);*/
         }
 
 
         private bool AreConnectionsMatching()
         {
-            // Проверка, что каждый стежок пользователя соответствует начальным
+            // Проверка, что количество стежков совпадает
+            if (_activeConnections.Count > _correctStitchCount)
+            {
+                MessageBox.Show("Стежков слишком много");
+                return false; // Если стежков больше, возвращаем ложь
+            }
+            else if (_activeConnections.Count < _correctStitchCount)
+            {
+                MessageBox.Show("Стежков недостаточно");
+                return false; // Если стежков меньше, возвращаем ложь
+            }
+
+            // Проверка, что каждый стежок пользователя совпадает с выигрышной конфигурацией
             foreach (var connection in _initialConnections)
             {
                 if (!_activeConnections.ContainsKey(connection.Item1) ||
                     !_activeConnections[connection.Item1].Tag.Equals(_activeConnections[connection.Item2].Tag))
                 {
-                    return false; // Если хотя бы один не совпадает, возвращаем ложь
+                    MessageBox.Show("Стежки не соответствуют выигрышному варианту");
+                    return false; // Если хотя бы один стежок не совпадает, возвращаем ложь
                 }
             }
-            return true;
+
+            return true; // Все стежки совпадают
         }
 
 
@@ -378,15 +393,22 @@ namespace WpfApp1
 
                     if (!visitedConnections.Contains(connection))
                     {
-                        DrawThickerConnectionLine(node, neighbor); // Обновленный вызов метода
-                        visitedConnections.Add(connection);
+                        DrawThickerConnectionLine(node, neighbor); // Отрисовка линии стежка
 
+                        // Добавляем стежок в список начальных стежков
+                        _initialConnections.Add((node, neighbor));
+
+                        visitedConnections.Add(connection);
                         node.HasConnection = true;
                         neighbor.HasConnection = true;
                         break;
                     }
                 }
             }
+
+            // Обновляем необходимое количество стежков после их генерации
+            _correctStitchCount = _initialConnections.Count;
+            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
 
 
@@ -465,7 +487,6 @@ namespace WpfApp1
             MyCanvas.Children.Add(endDot);
         }
 
-
         private void GenerateValidLevel(int size)
         {
             bool isValid = false;
@@ -474,7 +495,12 @@ namespace WpfApp1
                 _graph.GenerateLevel(size);
                 isValid = ValidateLevel();
             }
+
+            // Устанавливаем правильное количество стежков и обновляем текст
+            _correctStitchCount = _initialConnections.Count;
+            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
+
 
         private bool ValidateLevel()
         {
@@ -733,7 +759,10 @@ namespace WpfApp1
 
         private void RemoveConnection(Line line)
         {
+            // Удаляем линию (стежок) с холста
             MyCanvas.Children.Remove(line);
+
+            // Удаляем связанные точки, если они есть
             if (line.Tag is List<Ellipse> dots)
             {
                 foreach (var dot in dots)
@@ -741,7 +770,20 @@ namespace WpfApp1
                     MyCanvas.Children.Remove(dot);
                 }
             }
+
+            // Находим узлы, между которыми находится удаляемый стежок
+            var nodes = _activeConnections.Where(pair => pair.Value == line).Select(pair => pair.Key).ToList();
+
+            // Удаляем запись о стежке из _activeConnections для обоих узлов
+            foreach (var node in nodes)
+            {
+                _activeConnections.Remove(node);
+            }
+
+            // Обновляем количество текущих стежков
+            UpdateCurrentStitchCount();
         }
+
 
 
         private void RemoveDotAt(int x, int y)
@@ -760,7 +802,11 @@ namespace WpfApp1
             }
         }
 
-
+        private void UpdateCurrentStitchCount()
+        {
+            int currentStitchCount = _activeConnections.Count;
+            CurrentStitchCountText.Text = $"Текущее количество стежков: {currentStitchCount}";
+        }
 
         private void ToggleConnection(Node node, Node neighbor)
         {
@@ -770,14 +816,21 @@ namespace WpfApp1
             double centerOffset = cellSize / 2;
 
             // Проверяем, есть ли уже линия (стежок) между узлами
-            if (_activeConnections.TryGetValue(node, out Line existingLineNode))
+            if (_activeConnections.TryGetValue(node, out Line existingLineNode) &&
+                _activeConnections.TryGetValue(neighbor, out Line neighborLine) &&
+                existingLineNode == neighborLine)
             {
-                RemoveConnection(existingLineNode); // Удаляем стежок, если он существует
+                // Если стежок существует, удаляем его с холста и из списка активных стежков
+                RemoveConnection(existingLineNode);
                 _activeConnections.Remove(node);
                 _activeConnections.Remove(neighbor);
+
+                // Обновляем количество текущих стежков
+                UpdateCurrentStitchCount();
                 return;
             }
 
+            // Если стежка между узлами нет, добавляем его
             RemoveDotAt(node.X, node.Y);
             RemoveDotAt(neighbor.X, neighbor.Y);
 
@@ -798,16 +851,15 @@ namespace WpfApp1
             Ellipse startDot = CreateDot(node, dotSize, centerOffset, newLine);
             Ellipse endDot = CreateDot(neighbor, dotSize, centerOffset, newLine);
 
-            // Устанавливаем событие удаления для точек и линии
-            startDot.MouseLeftButtonDown += (s, e) => { RemoveConnection(newLine); e.Handled = true; };
-            endDot.MouseLeftButtonDown += (s, e) => { RemoveConnection(newLine); e.Handled = true; };
-            newLine.MouseLeftButtonDown += (s, e) => { RemoveConnection(newLine); e.Handled = true; };
-
             // Связываем точки с линией для удобного удаления
             newLine.Tag = new List<Ellipse> { startDot, endDot };
             _activeConnections[node] = newLine;
             _activeConnections[neighbor] = newLine;
+
+            // Обновляем количество текущих стежков
+            UpdateCurrentStitchCount();
         }
+
 
         // Метод создания точки для подключения к стежку
         private Ellipse CreateDot(Node node, double dotSize, double centerOffset, Line associatedLine = null)
@@ -824,26 +876,50 @@ namespace WpfApp1
             Canvas.SetTop(dot, node.Y * 40 + centerOffset - dotSize / 2);
             MyCanvas.Children.Add(dot);
 
-            // Устанавливаем событие для удаления точки при нажатии на нее, если она не привязана к стежку
+            // Устанавливаем событие для удаления точки
             dot.MouseLeftButtonDown += (s, e) =>
             {
-                RemoveDotIfNoConnection(dot);
+                if (dot.Tag is Line line) // Проверяем, связана ли точка со стежком
+                {
+                    RemoveDotWithStitch(line);
+                }
+                else
+                {
+                    RemoveDotIfNoConnection(dot);
+                }
                 e.Handled = true; // Останавливаем распространение события
             };
 
             return dot;
         }
 
+        // Новый метод для удаления точки вместе со стежком и обновления счетчика
+        private void RemoveDotWithStitch(Line line)
+        {
+            int currentStitchCount = _activeConnections.Count - 2;
+            RemoveConnection(line); // Удаляем стежок вместе с привязанными точками
+            UpdateCurrentStitchCount(); // Обновляем количество текущих стежков
+        }
+
 
         private void RemoveDotIfNoConnection(Ellipse dot)
         {
             // Проверяем, является ли точка частью стежка
-            if (dot.Tag == null)
+            if (dot.Tag is Line line)
             {
-                // Если точка не привязана к стежку, удаляем ее
+                // Если точка привязана к стежку, удаляем весь стежок
+                RemoveConnection(line);
+
+                // Обновляем количество текущих стежков
+                UpdateCurrentStitchCount();
+            }
+            else
+            {
+                // Если точка не привязана к стежку, удаляем только точку
                 MyCanvas.Children.Remove(dot);
             }
         }
+
 
 
 
@@ -916,11 +992,16 @@ namespace WpfApp1
                 _pauseOverlay = null;
             }
 
+            // Очищаем игровое поле и переменные
             MyCanvas.Children.Clear();
             _graph = new Graph();
+            _initialConnections.Clear(); // Очищаем список правильных стежков из предыдущей игры
+
+            // Генерируем новый уровень
             _graph.GenerateLevel(size);
             GenerateValidLevel(size);
 
+            // Рисуем новый граф и соединения
             DrawGraph();
             DrawConnections();
 
@@ -930,8 +1011,17 @@ namespace WpfApp1
             // Очищаем все точки и стежки после генерации подсказок
             ClearStitchesAndDots();
 
+            // Очищаем текущие стежки пользователя
             _activeConnections.Clear();
 
+            // Пересчитываем правильное количество стежков
+            _correctStitchCount = _initialConnections.Count;
+            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
+
+            // Сбрасываем текущее количество стежков пользователя
+            UpdateCurrentStitchCount();
+
+            // Сбрасываем и запускаем таймер
             ResetTimer();
         }
 
