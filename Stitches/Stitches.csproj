@@ -95,7 +95,6 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-<<<<<<< HEAD
   <ItemGroup>
     <Resource Include="Image\arrow.png" />
     <Resource Include="Image\done.png" />
