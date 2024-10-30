@@ -28,7 +28,7 @@ namespace WpfApp1
             ValidateLevel();
             DrawGraph();
             DrawConnections();
-            DisplayHints(size);
+            DisplayHints();
             InitializeComponent();
             StartTimer(); // Запуск таймера при инициализации окна
         }
@@ -218,83 +218,72 @@ namespace WpfApp1
         }
 
 
-
-
-        private void DisplayHints(int size)
+        private void DisplayHints()
         {
-            // Очищуємо попередні підказки (якщо є)
+            // Очищаем предыдущие подсказки
             MyCanvas.Children.OfType<TextBlock>().ToList().ForEach(tb => MyCanvas.Children.Remove(tb));
 
-            // Масиви для зберігання підрахунку кінців з'єднань для кожного рядка та стовпця
-            var rowHints = new int[size];
-            var colHints = new int[size];
+            int cellSize = 40;
 
-            // Використовуємо HashSet для зберігання унікальних з'єднань, щоб уникнути повторного врахування
-            var uniqueConnections = new HashSet<(int, int, int, int)>();
-
-            // Проходимо по всіх клітинках і рахуємо унікальні кінці з'єднань
-            foreach (var node in _graph.Nodes)
-            {
-                foreach (var neighbor in node.Neighbors.Where(n => n.HasConnection && n.GroupID != node.GroupID))
-                {
-                    // Упорядковуємо пару клітинок для унікальності з'єднання
-                    var connection = node.X < neighbor.X || (node.X == neighbor.X && node.Y < neighbor.Y)
-                        ? (node.X, node.Y, neighbor.X, neighbor.Y)
-                        : (neighbor.X, neighbor.Y, node.X, node.Y);
-
-                    // Додаємо з'єднання до підрахунку тільки один раз
-                    if (uniqueConnections.Add(connection))
-                    {
-                        // Визначаємо, чи з'єднання знаходиться в межах одного рядка або стовпця
-                        if (node.Y == neighbor.Y) // З'єднання в одному рядку
-                        {
-                            rowHints[node.Y] += 2;
-                        }
-                        else if (node.X == neighbor.X) // З'єднання в одному стовпці
-                        {
-                            colHints[node.X] += 2;
-                        }
-                        else
-                        {
-                            // З'єднання переходить між рядками та стовпцями
-                            rowHints[node.Y] += 1;
-                            rowHints[neighbor.Y] += 1;
-                            colHints[node.X] += 1;
-                            colHints[neighbor.X] += 1;
-                        }
-                    }
-                }
-            }
-
-
-            // Відображення підказок для рядків
+            // Подсчет и отображение количества точек в каждом ряду
             for (int row = 0; row < size; row++)
             {
+                int rowCount = 0; // Счетчик для ряда
+
+                for (int col = 0; col < size; col++)
+                {
+                    // Проверка наличия точки (1) в ячейке
+                    if (_graph.GetCellValue(row, col) == 1)
+                    {
+                        rowCount++;
+                    }
+                }
+
+                // Отображение подсказки для текущего ряда
                 TextBlock rowHint = new TextBlock
                 {
-                    Text = rowHints[row].ToString(),
+                    Text = rowCount.ToString(),
                     FontSize = 14,
                     Foreground = Brushes.Black
                 };
-                Canvas.SetLeft(rowHint, -20); // Розміщення зліва від рядка
-                Canvas.SetTop(rowHint, row * 40 + 15); // Розміщення на рівні середини клітинки
+
+                Canvas.SetLeft(rowHint, -20); // Позиция слева от ряда
+                Canvas.SetTop(rowHint, row * cellSize + 15); // Центровка по высоте ряда
                 MyCanvas.Children.Add(rowHint);
             }
 
-            // Відображення підказок для стовпців
+            // Подсчет и отображение количества точек в каждом столбце
             for (int col = 0; col < size; col++)
             {
+                int colCount = 0; // Счетчик для столбца
+
+                for (int row = 0; row < size; row++)
+                {
+                    // Проверка наличия точки (1) в ячейке
+                    if (_graph.GetCellValue(row, col) == 1)
+                    {
+                        colCount++;
+                    }
+                }
+
+                // Отображение подсказки для текущего столбца
                 TextBlock colHint = new TextBlock
                 {
-                    Text = colHints[col].ToString(),
+                    Text = colCount.ToString(),
                     FontSize = 14,
                     Foreground = Brushes.Black
                 };
-                Canvas.SetLeft(colHint, col * 40 + 15); // Розміщення над стовпцем
-                Canvas.SetTop(colHint, -20); // Розміщення на рівні середини клітинки
+
+                Canvas.SetLeft(colHint, col * cellSize + 15); // Центровка по ширине столбца
+                Canvas.SetTop(colHint, -20); // Позиция над столбцом
                 MyCanvas.Children.Add(colHint);
             }
         }
+
+
+
+
+
 
         // Метод для з'єднання всіх сусідніх блоків
         private void DrawConnections()
@@ -358,26 +347,52 @@ namespace WpfApp1
         // Метод для малювання лінії з'єднання між двома вузлами
         private void DrawConnectionLine(Node node1, Node node2)
         {
-            double cellSize = 40; // Розмір клітинки, можна налаштувати відповідно до канвасу
+            double cellSize = 40; // Размер клетки
+            double centerOffset = cellSize / 2;
 
-            // Визначаємо центри клітинок
-            double x1 = node1.X * cellSize + cellSize / 2;
-            double y1 = node1.Y * cellSize + cellSize / 2;
-            double x2 = node2.X * cellSize + cellSize / 2;
-            double y2 = node2.Y * cellSize + cellSize / 2;
-
+            // Создаем линию соединения между узлами
             Line line = new Line
             {
-                X1 = x1,
-                Y1 = y1,
-                X2 = x2,
-                Y2 = y2,
+                X1 = node1.X * cellSize + centerOffset,
+                Y1 = node1.Y * cellSize + centerOffset,
+                X2 = node2.X * cellSize + centerOffset,
+                Y2 = node2.Y * cellSize + centerOffset,
                 Stroke = Brushes.Black,
                 StrokeThickness = 2
             };
-
             MyCanvas.Children.Add(line);
+
+            // Размер точки (увеличенный)
+            double dotSize = 10;
+
+            // Добавляем точку на начале стежка
+            Ellipse startDot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Black
+            };
+
+            // Устанавливаем позицию точки на начале линии
+            Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(startDot);
+
+            // Добавляем точку на конце стежка
+            Ellipse endDot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Black
+            };
+
+            // Устанавливаем позицию точки на конце линии
+            Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(endDot);
         }
+
+
         private void GenerateValidLevel(int size)
         {
             bool isValid = false;
@@ -650,7 +665,7 @@ namespace WpfApp1
 
             DrawGraph();
             DrawConnections();
-            DisplayHints(size);
+            DisplayHints();
 
             _activeConnections.Clear();
 

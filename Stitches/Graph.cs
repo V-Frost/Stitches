@@ -74,6 +74,11 @@ namespace WpfApp1
         }
 
 
+        public int GetCellValue(int row, int col)
+        {
+            var node = Nodes.FirstOrDefault(n => n.X == col && n.Y == row);
+            return node != null && node.HasConnection ? 1 : 0;
+        }
 
         private List<Node> GenerateBlockFromStart(int startX, int startY, int groupId, int minBlockSize, int maxBlockSize, Random random)
         {
