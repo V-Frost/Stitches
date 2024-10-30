@@ -29,11 +29,12 @@ namespace WpfApp1
             DrawGraph();
             DrawConnections();
             DisplayHints();
-            ClearStitchesAndDots();
+            //ClearStitchesAndDots();
             InitializeComponent();
             StartTimer(); // Запуск таймера при инициализации окна
         }
 
+        private List<(Node, Node)> _initialConnections = new List<(Node, Node)>(); // Список для начальных красных стежков
 
         private bool _showCoordinates = false;
         private bool _hideTimer = false;
@@ -302,48 +303,61 @@ namespace WpfApp1
         private void DrawThickerConnectionLine(Node node1, Node node2)
         {
             double cellSize = 40;
-            double lineThickness = 4; // Увеличенная толщина стежка
-            double dotSize = 10;      // Размер точки
+            double lineThickness = 4;
+            double dotSize = 10;
             double centerOffset = cellSize / 2;
 
-            // Создаем линию соединения между узлами
+            // Добавляем соединение в список начальных красных стежков
+            _initialConnections.Add((node1, node2));
+
+            // Отрисовка линии и точек, как в предыдущем примере
             Line line = new Line
             {
                 X1 = node1.X * cellSize + centerOffset,
                 Y1 = node1.Y * cellSize + centerOffset,
                 X2 = node2.X * cellSize + centerOffset,
                 Y2 = node2.Y * cellSize + centerOffset,
-                Stroke = Brushes.Black,
-                StrokeThickness = lineThickness // Задаем увеличенную толщину линии
+                Stroke = Brushes.Red,
+                StrokeThickness = lineThickness
             };
             MyCanvas.Children.Add(line);
 
-            // Добавляем точку на начале стежка
             Ellipse startDot = new Ellipse
             {
                 Width = dotSize,
                 Height = dotSize,
-                Fill = Brushes.Black
+                Fill = Brushes.Red
             };
-
-            // Устанавливаем позицию точки на начале линии
             Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
             Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
             MyCanvas.Children.Add(startDot);
 
-            // Добавляем точку на конце стежка
             Ellipse endDot = new Ellipse
             {
                 Width = dotSize,
                 Height = dotSize,
-                Fill = Brushes.Black
+                Fill = Brushes.Red
             };
-
-            // Устанавливаем позицию точки на конце линии
             Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
             Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
             MyCanvas.Children.Add(endDot);
         }
+
+
+        private bool AreConnectionsMatching()
+        {
+            // Проверка, что каждый стежок пользователя соответствует начальным
+            foreach (var connection in _initialConnections)
+            {
+                if (!_activeConnections.ContainsKey(connection.Item1) ||
+                    !_activeConnections[connection.Item1].Tag.Equals(_activeConnections[connection.Item2].Tag))
+                {
+                    return false; // Если хотя бы один не совпадает, возвращаем ложь
+                }
+            }
+            return true;
+        }
+
 
 
 
@@ -852,11 +866,12 @@ namespace WpfApp1
 
         private void CheckButton_Click(object sender, RoutedEventArgs e)
         {
-            if (IsGraphConnected())
-                MessageBox.Show("Вітаємо! Всі блоки з'єднані правильно!");
+            if (AreConnectionsMatching())
+                MessageBox.Show("Поздравляем! Все стежки совпадают, вы выиграли!");
             else
-                MessageBox.Show("Ще не всі блоки з'єднані або з'єднані неправильно.");
+                MessageBox.Show("Не готово для победы.");
         }
+
 
         private bool IsGraphConnected()
         {
