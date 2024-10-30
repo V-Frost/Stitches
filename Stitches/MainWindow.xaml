@@ -1,4 +1,4 @@
-﻿<Window x:Class="WpfApp1.MainWindow"
+<Window x:Class="WpfApp1.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Стежки" Width="550" Height="600" Background="White">
@@ -20,31 +20,19 @@
         <!-- Кнопка Рестарт -->
         <Button Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="-300,0,0,85"
                 Click="RestartButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="Black">
-<<<<<<< HEAD
-            <Image Source="Image/restart.png" Width="55" Height="55"/>
-=======
-            <Image Source="E:\Stitches\image\restart.png" Width="55" Height="55"/>
->>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
+            <Image Source="Image\restart.png" Width="55" Height="55"/>
         </Button>
 
         <!-- Кнопка Перевірити -->
         <Button Width="60" Height="60" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,85"
                 Click="CheckButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="Black">
-<<<<<<< HEAD
             <Image Source="Image\done.png" Width="55" Height="55"/>
-=======
-            <Image Source="E:\Stitches\image\done.png" Width="55" Height="55"/>
->>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
         </Button>
 
         <!-- Кнопка Настройки -->
         <Button x:Name="SettingsButton" Width="60" Height="60" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,20,20,0"
                 Click="SettingsButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="Black">
-<<<<<<< HEAD
             <Image Source="Image\setings.png" Width="55" Height="55"/>
-=======
-            <Image Source="E:\Stitches\image\setings.png" Width="55" Height="55"/>
->>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
         </Button>
 
         <!-- Кнопка Пауза -->
@@ -61,15 +49,10 @@
         Padding="0"
         HorizontalContentAlignment="Stretch"
         VerticalContentAlignment="Stretch">
-<<<<<<< HEAD
-            <Image Source="Image\pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
-        </Button>
-=======
             <Image Source="E:\Stitches\image\pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
         </Button>
 
 
 
->>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
     </Grid>
 </Window>
