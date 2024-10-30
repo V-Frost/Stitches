@@ -20,7 +20,11 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
+<<<<<<< HEAD
             int cellSize = 40;
+=======
+            int cellSize = 40; // Розмір однієї клітинки в пікселях
+>>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
             MyCanvas.Width = size * cellSize;
             MyCanvas.Height = size * cellSize;
             _graph = new Graph();

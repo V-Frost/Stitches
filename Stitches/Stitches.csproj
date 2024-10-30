@@ -95,6 +95,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+<<<<<<< HEAD
   <ItemGroup>
     <Resource Include="Image\arrow.png" />
     <Resource Include="Image\done.png" />
@@ -106,5 +107,7 @@
     <Resource Include="Image\setings.png" />
     <Resource Include="Image\wait.png" />
   </ItemGroup>
+=======
+>>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
