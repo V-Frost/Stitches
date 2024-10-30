@@ -20,12 +20,12 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
-            int cellSize = 40;
+            int cellSize = 40; // Розмір однієї клітинки в пікселях
             MyCanvas.Width = size * cellSize;
             MyCanvas.Height = size * cellSize;
             _graph = new Graph();
             _graph.GenerateLevel(size);
-            ValidateLevel();
+            GenerateValidLevel(size);
             DrawGraph();
             DrawConnections();
             DisplayHints();
@@ -82,7 +82,7 @@ namespace WpfApp1
                 {
                     _pauseOverlay = new Image
                     {
-                        Source = new BitmapImage(new Uri("E:/Stitches/image/wait.png")),
+                        Source = new BitmapImage(new Uri("pack://application:,,,/Image/wait.png")),
                         Stretch = Stretch.Fill,
                         Width = MyCanvas.Width,
                         Height = MyCanvas.Height,
@@ -298,7 +298,7 @@ namespace WpfApp1
             }
         }
 
-<<<<<<< HEAD
+
         private void DrawThickerConnectionLine(Node node1, Node node2)
         {
             double cellSize = 40;
@@ -346,8 +346,7 @@ namespace WpfApp1
         }
 
 
-=======
->>>>>>> 32ab5b4a80200b0110f6309458e3bebb6362483c
+
         // Метод для з'єднання всіх сусідніх блоків
         private void DrawConnections()
         {
@@ -533,7 +532,7 @@ namespace WpfApp1
             }
         }
 
-<<<<<<< HEAD
+
         private void ToggleDot(int x, int y)
         {
             // Определяем позицию точки
@@ -614,8 +613,7 @@ namespace WpfApp1
         }
 
 
-=======
->>>>>>> 32ab5b4a80200b0110f6309458e3bebb6362483c
+
         private void DrawGraph()
         {
             MyCanvas.Children.Clear();
@@ -922,10 +920,5 @@ namespace WpfApp1
             ResetTimer();
         }
 
-<<<<<<< HEAD
-
-
-=======
->>>>>>> 32ab5b4a80200b0110f6309458e3bebb6362483c
     }
 }
