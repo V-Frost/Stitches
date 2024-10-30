@@ -64,7 +64,7 @@ namespace WpfApp1
                 {
                     _pauseOverlay = new Image
                     {
-                        Source = new BitmapImage(new Uri("E:/Stitches/image/wait.png")),
+                        Source = new BitmapImage(new Uri("pack://application:,,,/Image/wait.png")),
                         Stretch = Stretch.Fill,
                         Width = MyCanvas.Width,
                         Height = MyCanvas.Height,
