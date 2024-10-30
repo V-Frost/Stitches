@@ -49,7 +49,7 @@
         Padding="0"
         HorizontalContentAlignment="Stretch"
         VerticalContentAlignment="Stretch">
-            <Image Source="E:\Stitches\image\pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
+            <Image Source="Image\pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
         </Button>
 
 
