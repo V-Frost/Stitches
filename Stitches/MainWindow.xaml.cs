@@ -29,10 +29,10 @@ namespace WpfApp1
             DrawGraph();
             DrawConnections();
             DisplayHints();
+            ClearStitchesAndDots();
             InitializeComponent();
             StartTimer(); // Запуск таймера при инициализации окна
         }
-
 
 
         private bool _showCoordinates = false;
@@ -44,6 +44,24 @@ namespace WpfApp1
 
         private Image _pauseOverlay;
         private bool _isPaused = false;
+
+        private Node _startNode;
+        private bool _isDragging;
+
+
+        private void ClearStitchesAndDots()
+        {
+            // Удаляем все линии (стежки) и точки (эллипсы) с MyCanvas
+            var elementsToRemove = MyCanvas.Children.OfType<UIElement>()
+                .Where(element => element is Line || element is Ellipse)
+                .ToList();
+
+            foreach (var element in elementsToRemove)
+            {
+                MyCanvas.Children.Remove(element);
+            }
+        }
+
 
         private void PauseButton_Click(object sender, RoutedEventArgs e)
         {
@@ -280,9 +298,51 @@ namespace WpfApp1
             }
         }
 
+        private void DrawThickerConnectionLine(Node node1, Node node2)
+        {
+            double cellSize = 40;
+            double lineThickness = 4; // Увеличенная толщина стежка
+            double dotSize = 10;      // Размер точки
+            double centerOffset = cellSize / 2;
 
+            // Создаем линию соединения между узлами
+            Line line = new Line
+            {
+                X1 = node1.X * cellSize + centerOffset,
+                Y1 = node1.Y * cellSize + centerOffset,
+                X2 = node2.X * cellSize + centerOffset,
+                Y2 = node2.Y * cellSize + centerOffset,
+                Stroke = Brushes.Black,
+                StrokeThickness = lineThickness // Задаем увеличенную толщину линии
+            };
+            MyCanvas.Children.Add(line);
 
+            // Добавляем точку на начале стежка
+            Ellipse startDot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Black
+            };
 
+            // Устанавливаем позицию точки на начале линии
+            Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(startDot);
+
+            // Добавляем точку на конце стежка
+            Ellipse endDot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Black
+            };
+
+            // Устанавливаем позицию точки на конце линии
+            Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(endDot);
+        }
 
 
         // Метод для з'єднання всіх сусідніх блоків
@@ -292,30 +352,27 @@ namespace WpfApp1
 
             foreach (var node in _graph.Nodes)
             {
-                // Перевіряємо, чи вже є з'єднання для цієї клітинки
                 if (node.HasConnection) continue;
 
                 foreach (var neighbor in GetNeighboringBlocks(node))
                 {
-                    // Упорядкування для унікальності пари (GroupID менший завжди йде першим)
                     var connection = node.GroupID < neighbor.GroupID
                         ? (node.GroupID, neighbor.GroupID)
                         : (neighbor.GroupID, node.GroupID);
 
-                    // Перевірка, чи вже оброблено це з'єднання
                     if (!visitedConnections.Contains(connection))
                     {
-                        DrawConnectionLine(node, neighbor);
+                        DrawThickerConnectionLine(node, neighbor); // Обновленный вызов метода
                         visitedConnections.Add(connection);
 
-                        // Встановлюємо прапорці `HasConnection` для обох клітинок
                         node.HasConnection = true;
                         neighbor.HasConnection = true;
-                        break; // Виходимо з циклу після створення одного з'єднання
+                        break;
                     }
                 }
             }
         }
+
 
         // Метод для отримання сусідніх блоків, які мають інший GroupID
         private List<Node> GetNeighboringBlocks(Node node)
@@ -473,15 +530,91 @@ namespace WpfApp1
             }
         }
 
+        private void ToggleDot(int x, int y)
+        {
+            // Определяем позицию точки
+            double cellSize = 40;
+            double dotSize = 10;
+            double centerOffset = cellSize / 2 - dotSize / 2;
+
+            // Проверяем наличие точки в данной клетке
+            var dotInCell = MyCanvas.Children.OfType<Ellipse>().FirstOrDefault(e =>
+                Canvas.GetLeft(e) == x * cellSize + centerOffset && Canvas.GetTop(e) == y * cellSize + centerOffset);
+
+            if (dotInCell != null)
+            {
+                // Если точка связана со стежком, удаляем весь стежок
+                if (dotInCell.Tag is Line line)
+                {
+                    RemoveConnection(line);
+                }
+                else
+                {
+                    // Если точка не связана со стежком, удаляем только точку
+                    MyCanvas.Children.Remove(dotInCell);
+                }
+            }
+            else
+            {
+                // Если точки нет, добавляем новую точку без стежка
+                Ellipse dot = new Ellipse
+                {
+                    Width = dotSize,
+                    Height = dotSize,
+                    Fill = Brushes.Black
+                };
+                Canvas.SetLeft(dot, x * cellSize + centerOffset);
+                Canvas.SetTop(dot, y * cellSize + centerOffset);
+                MyCanvas.Children.Add(dot);
+            }
+        }
 
 
+        private void StartDrawing(Node node)
+        {
+            _startNode = node;  // Сохраняем начальный узел
+            _isDragging = true;
+
+            // Добавляем точку на начальной клетке, если её нет
+            ToggleDot(node.X, node.Y);
+        }
+
+        private void ContinueDrawing(Node currentNode)
+        {
+            if (_isDragging && _startNode != null && currentNode != _startNode)
+            {
+                // Проверяем, является ли текущая клетка соседней
+                bool isNeighbor = Math.Abs(_startNode.X - currentNode.X) + Math.Abs(_startNode.Y - currentNode.Y) == 1;
+
+                if (isNeighbor)
+                {
+                    if (_startNode.GroupID != currentNode.GroupID)
+                    {
+                        // Если это переход в другой блок, рисуем стежок
+                        ToggleConnection(_startNode, currentNode);
+                    }
+                    else
+                    {
+                        // Если это тот же блок, добавляем вторую точку
+                        ToggleDot(currentNode.X, currentNode.Y);
+                    }
+                    _isDragging = false; // Останавливаем рисование
+                }
+            }
+        }
+
+        private void EndDrawing(Node node)
+        {
+            _isDragging = false; // Завершаем процесс рисования
+            _startNode = null;
+        }
 
 
         private void DrawGraph()
         {
             MyCanvas.Children.Clear();
             double cellSize = 40;
-            double clickableSize = 10; // Розмір клікабельної області
+            double clickableSize = 10; // Размер кликабельной области
 
             foreach (var node in _graph.Nodes)
             {
@@ -503,10 +636,16 @@ namespace WpfApp1
                     Height = cellSize,
                     BorderBrush = Brushes.Black,
                     BorderThickness = borderThickness,
+                    Background = Brushes.Transparent, // Устанавливаем фон, чтобы Border реагировал на клики
                     Tag = node
                 };
 
-                // Додаємо клікабельні області тільки для сусідів з різними GroupID
+                // Обработчики для начала и конца рисования
+                border.MouseLeftButtonDown += (s, e) => StartDrawing(node);
+                border.MouseMove += (s, e) => ContinueDrawing(node);
+                border.MouseLeftButtonUp += (s, e) => EndDrawing(node);
+
+                // Добавляем кликабельные области только для соседей с разными GroupID
                 if (topNeighbor != null && topNeighbor.GroupID != node.GroupID)
                     MyCanvas.Children.Add(CreateClickableEdge(node, topNeighbor, "top", cellSize, clickableSize));
 
@@ -519,11 +658,15 @@ namespace WpfApp1
                 if (rightNeighbor != null && rightNeighbor.GroupID != node.GroupID)
                     MyCanvas.Children.Add(CreateClickableEdge(node, rightNeighbor, "right", cellSize, clickableSize));
 
+                // Устанавливаем позицию и добавляем ячейку на Canvas
                 Canvas.SetLeft(border, node.X * cellSize);
                 Canvas.SetTop(border, node.Y * cellSize);
                 MyCanvas.Children.Add(border);
             }
         }
+
+
+
 
         private Border CreateClickableEdge(Node node, Node neighbor, string position, double cellSize, double clickableSize)
         {
@@ -570,26 +713,122 @@ namespace WpfApp1
             return clickableEdge;
         }
 
+        private void RemoveConnection(Line line)
+        {
+            MyCanvas.Children.Remove(line);
+            if (line.Tag is List<Ellipse> dots)
+            {
+                foreach (var dot in dots)
+                {
+                    MyCanvas.Children.Remove(dot);
+                }
+            }
+        }
+
+
+        private void RemoveDotAt(int x, int y)
+        {
+            double cellSize = 40;
+            double dotSize = 10;
+            double centerOffset = cellSize / 2 - dotSize / 2;
+
+            // Проверяем наличие точки на данных координатах и удаляем её
+            var existingDot = MyCanvas.Children.OfType<Ellipse>()
+                .FirstOrDefault(e => Canvas.GetLeft(e) == x * cellSize + centerOffset && Canvas.GetTop(e) == y * cellSize + centerOffset);
+
+            if (existingDot != null)
+            {
+                MyCanvas.Children.Remove(existingDot);
+            }
+        }
+
+
+
         private void ToggleConnection(Node node, Node neighbor)
         {
+            double cellSize = 40;
+            double lineThickness = 4;
+            double dotSize = 10;
+            double centerOffset = cellSize / 2;
+
+            // Проверяем, есть ли уже линия (стежок) между узлами
             if (_activeConnections.TryGetValue(node, out Line existingLineNode))
             {
-                MyCanvas.Children.Remove(existingLineNode);
+                RemoveConnection(existingLineNode); // Удаляем стежок, если он существует
                 _activeConnections.Remove(node);
-            }
-
-            if (_activeConnections.TryGetValue(neighbor, out Line existingLineNeighbor))
-            {
-                MyCanvas.Children.Remove(existingLineNeighbor);
                 _activeConnections.Remove(neighbor);
+                return;
             }
 
-            Line newLine = CreateConnectionLine(node, neighbor);
+            RemoveDotAt(node.X, node.Y);
+            RemoveDotAt(neighbor.X, neighbor.Y);
+
+            // Создаем новую линию (стежок)
+            Line newLine = new Line
+            {
+                X1 = node.X * cellSize + centerOffset,
+                Y1 = node.Y * cellSize + centerOffset,
+                X2 = neighbor.X * cellSize + centerOffset,
+                Y2 = neighbor.Y * cellSize + centerOffset,
+                Stroke = Brushes.Black,
+                StrokeThickness = lineThickness
+            };
+
             MyCanvas.Children.Add(newLine);
 
+            // Создаем точки и связываем их со стежком
+            Ellipse startDot = CreateDot(node, dotSize, centerOffset, newLine);
+            Ellipse endDot = CreateDot(neighbor, dotSize, centerOffset, newLine);
+
+            // Устанавливаем событие удаления для точек и линии
+            startDot.MouseLeftButtonDown += (s, e) => { RemoveConnection(newLine); e.Handled = true; };
+            endDot.MouseLeftButtonDown += (s, e) => { RemoveConnection(newLine); e.Handled = true; };
+            newLine.MouseLeftButtonDown += (s, e) => { RemoveConnection(newLine); e.Handled = true; };
+
+            // Связываем точки с линией для удобного удаления
+            newLine.Tag = new List<Ellipse> { startDot, endDot };
             _activeConnections[node] = newLine;
             _activeConnections[neighbor] = newLine;
         }
+
+        // Метод создания точки для подключения к стежку
+        private Ellipse CreateDot(Node node, double dotSize, double centerOffset, Line associatedLine = null)
+        {
+            Ellipse dot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Black,
+                Tag = associatedLine // Связываем точку со стежком, если он есть
+            };
+
+            Canvas.SetLeft(dot, node.X * 40 + centerOffset - dotSize / 2);
+            Canvas.SetTop(dot, node.Y * 40 + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(dot);
+
+            // Устанавливаем событие для удаления точки при нажатии на нее, если она не привязана к стежку
+            dot.MouseLeftButtonDown += (s, e) =>
+            {
+                RemoveDotIfNoConnection(dot);
+                e.Handled = true; // Останавливаем распространение события
+            };
+
+            return dot;
+        }
+
+
+        private void RemoveDotIfNoConnection(Ellipse dot)
+        {
+            // Проверяем, является ли точка частью стежка
+            if (dot.Tag == null)
+            {
+                // Если точка не привязана к стежку, удаляем ее
+                MyCanvas.Children.Remove(dot);
+            }
+        }
+
+
+
 
         private Line CreateConnectionLine(Node node, Node neighbor)
         {
@@ -665,12 +904,18 @@ namespace WpfApp1
 
             DrawGraph();
             DrawConnections();
+
+            // Генерируем подсказки для точек и стежков
             DisplayHints();
+
+            // Очищаем все точки и стежки после генерации подсказок
+            ClearStitchesAndDots();
 
             _activeConnections.Clear();
 
             ResetTimer();
         }
+
 
 
     }
