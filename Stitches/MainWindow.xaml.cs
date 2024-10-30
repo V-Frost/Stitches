@@ -20,11 +20,7 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
-<<<<<<< HEAD
             int cellSize = 40;
-=======
-            int cellSize = 40; // Розмір однієї клітинки в пікселях
->>>>>>> 4cbccbb2fac325f258117e1e00021229e8dfd00f
             MyCanvas.Width = size * cellSize;
             MyCanvas.Height = size * cellSize;
             _graph = new Graph();
@@ -284,11 +280,6 @@ namespace WpfApp1
             }
         }
 
-
-
-
-
-
         // Метод для з'єднання всіх сусідніх блоків
         private void DrawConnections()
         {
@@ -476,10 +467,6 @@ namespace WpfApp1
                 }
             }
         }
-
-
-
-
 
         private void DrawGraph()
         {
@@ -675,7 +662,6 @@ namespace WpfApp1
 
             ResetTimer();
         }
-
 
     }
 }
