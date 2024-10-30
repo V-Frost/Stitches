@@ -20,7 +20,7 @@ namespace WpfApp1
         public MainWindow()
         {
             InitializeComponent();
-            int cellSize = 40; // Розмір однієї клітинки в пікселях
+            int cellSize = 40;
             MyCanvas.Width = size * cellSize;
             MyCanvas.Height = size * cellSize;
             _graph = new Graph();
@@ -298,6 +298,7 @@ namespace WpfApp1
             }
         }
 
+<<<<<<< HEAD
         private void DrawThickerConnectionLine(Node node1, Node node2)
         {
             double cellSize = 40;
@@ -345,6 +346,8 @@ namespace WpfApp1
         }
 
 
+=======
+>>>>>>> 32ab5b4a80200b0110f6309458e3bebb6362483c
         // Метод для з'єднання всіх сусідніх блоків
         private void DrawConnections()
         {
@@ -530,6 +533,7 @@ namespace WpfApp1
             }
         }
 
+<<<<<<< HEAD
         private void ToggleDot(int x, int y)
         {
             // Определяем позицию точки
@@ -610,6 +614,8 @@ namespace WpfApp1
         }
 
 
+=======
+>>>>>>> 32ab5b4a80200b0110f6309458e3bebb6362483c
         private void DrawGraph()
         {
             MyCanvas.Children.Clear();
@@ -916,7 +922,10 @@ namespace WpfApp1
             ResetTimer();
         }
 
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 32ab5b4a80200b0110f6309458e3bebb6362483c
     }
 }
