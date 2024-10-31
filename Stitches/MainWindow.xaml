@@ -59,37 +59,30 @@
             <Image Source="Image/pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
         </Button>
 
-        <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,531,0,0" Width="410">
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,540,0,0">
             <!-- Позначки для значень слайдера -->
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
 
-            <!-- Текстові блоки для значень -->
-            <TextBlock Text="5" FontSize="14" HorizontalAlignment="Center" Grid.Row="0" Grid.Column="0" />
-            <TextBlock Text="7" FontSize="14" HorizontalAlignment="Center" Grid.Row="0" Grid.Column="1" />
-            <TextBlock Text="10" FontSize="14" HorizontalAlignment="Center" Grid.Row="0" Grid.Column="2" />
-            <TextBlock Text="15" FontSize="14" HorizontalAlignment="Center" Grid.Row="0" Grid.Column="3" />
+            <!-- Контейнер для текстових блоків з позначками -->
+            <TextBlock Text="5" FontSize="14" TextAlignment="Center" RenderTransformOrigin="0.31,0.589" Margin="10,0,277,23" Grid.RowSpan="2"/>
+            <TextBlock Text="7" FontSize="14" TextAlignment="Center" Margin="73,0,208,23" Grid.RowSpan="2"/>
+            <TextBlock Text="10" FontSize="14" HorizontalAlignment="Center" Width="26" TextAlignment="Center" Margin="0,0,0,23" Grid.RowSpan="2" RenderTransformOrigin="-0.265,0.544"/>
+            <TextBlock Text="15" FontSize="14" HorizontalAlignment="Left" Width="33" TextAlignment="Center" Margin="249,0,0,23" Grid.RowSpan="2"/>
 
-            <!-- Слайдер з рівномірним розподілом -->
+            <!-- Слайдер -->
             <Slider Grid.Row="1" Grid.ColumnSpan="4"
             HorizontalAlignment="Center"
-            Width="316"
+            Width="410"
             Height="23"
             Minimum="0"
             Maximum="3"
             Ticks="0,1,2,3"
             IsSnapToTickEnabled="True"
-            />
+            ValueChanged="Slider_ValueChanged"/>
         </Grid>
-
 
 
     </Grid>

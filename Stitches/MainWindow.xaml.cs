@@ -17,38 +17,85 @@ namespace WpfApp1
         private Graph _graph;
         private int size = 5;
         private Dictionary<Node, Line> _activeConnections = new Dictionary<Node, Line>();
+        private List<(Node, Node)> _initialConnections = new List<(Node, Node)>(); // Список для начальных красных стежков
+        private bool _showCoordinates = false;
+        private bool _hideTimer = false;
+        private bool _nightMode = false;
+        private DispatcherTimer _timer;
+        private int _elapsedSeconds;
+        private Image _pauseOverlay;
+        private bool _isPaused = false;
+        private Node _startNode;
+        private bool _isDragging;
+        private int _correctStitchCount;
+        private bool _isGameInitialized = false; // прапорець для перевірки ініціалізації
+
         public MainWindow()
         {
             InitializeComponent();
-            int cellSize = 40; // Розмір однієї клітинки в пікселях
+            InitializeGame();
+            _isGameInitialized = true; // Встановлюємо прапорець після повної ініціалізації
+        }
+
+        private void InitializeGame()
+        {
+            int cellSize = 40;
+            MyCanvas.Children.Clear(); // Очищення всіх попередніх об'єктів на Canvas
+
             MyCanvas.Width = size * cellSize;
             MyCanvas.Height = size * cellSize;
             _graph = new Graph();
-            _graph.GenerateLevel(size);
+            _initialConnections.Clear(); // Очищення початкових з'єднань перед генерацією нового рівня
+            _activeConnections.Clear(); // Очищення активних з'єднань для уникнення конфліктів
+
             GenerateValidLevel(size);
             DrawGraph();
             DrawConnections();
             DisplayHints();
-            //ClearStitchesAndDots();
-            StartTimer(); // Запуск таймера при инициализации окна
         }
 
-        private List<(Node, Node)> _initialConnections = new List<(Node, Node)>(); // Список для начальных красных стежков
 
-        private bool _showCoordinates = false;
-        private bool _hideTimer = false;
-        private bool _nightMode = false;
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!_isGameInitialized) return;
 
-        private DispatcherTimer _timer;
-        private int _elapsedSeconds;
+            // Тимчасово вимикаємо обробку подій і таймер для безпечної ініціалізації
+            _isGameInitialized = false;
+            _timer?.Stop(); // Зупиняємо таймер, якщо він працює
 
-        private Image _pauseOverlay;
-        private bool _isPaused = false;
+            int sliderValue = (int)e.NewValue;
+            HandleSliderValueChange(sliderValue);
 
-        private Node _startNode;
-        private bool _isDragging;
+            // Повторно запускаємо гру і вмикаємо обробку подій після зміни розміру
+            _isGameInitialized = true;
+            StartTimer(); // Запускаємо таймер знову
+        }
 
-        private int _correctStitchCount;
+
+
+        // Метод для обробки значення слайдера
+        private void HandleSliderValueChange(int value)
+        {
+            switch (value)
+            {
+                case 0:
+                    size = 5;
+                    InitializeGame();
+                    break;
+                case 1:
+                    size = 7;
+                    InitializeGame();
+                    break;
+                case 2:
+                    size = 10;
+                    InitializeGame();
+                    break;
+                case 3:
+                    size = 15;
+                    InitializeGame();
+                    break;
+            }
+        }
 
 
         private void ClearStitchesAndDots()
@@ -312,7 +359,7 @@ namespace WpfApp1
             _initialConnections.Add((node1, node2));
 
             // Отрисовка линии и точек, как в предыдущем примере
-/*            Line line = new Line
+          Line line = new Line
             {
                 X1 = node1.X * cellSize + centerOffset,
                 Y1 = node1.Y * cellSize + centerOffset,
@@ -341,7 +388,7 @@ namespace WpfApp1
             };
             Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
             Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
-            MyCanvas.Children.Add(endDot);*/
+            MyCanvas.Children.Add(endDot);
         }
 
 
@@ -406,9 +453,9 @@ namespace WpfApp1
                 }
             }
 
-            //// Обновляем необходимое количество стежков после их генерации
-            //_correctStitchCount = _initialConnections.Count;
-            //TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
+            // Обновляем необходимое количество стежков после их генерации
+            _correctStitchCount = _initialConnections.Count;
+            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
 
 
@@ -489,17 +536,54 @@ namespace WpfApp1
 
         private void GenerateValidLevel(int size)
         {
-            bool isValid = false;
-            while (!isValid)
+            int requiredBlocks;
+            int minBlockSize;
+            int maxBlockSize;
+
+            switch (size)
             {
-                _graph.GenerateLevel(size);
-                isValid = ValidateLevel();
+                case 5:
+                    requiredBlocks = 5;
+                    minBlockSize = 4;
+                    maxBlockSize = 10;
+                    break;
+                case 7:
+                    requiredBlocks = 7;
+                    minBlockSize = 7;
+                    maxBlockSize = 13;
+                    break;
+                case 10:
+                    requiredBlocks = 10;
+                    minBlockSize = 10;
+                    maxBlockSize = 16;
+                    break;
+                case 15:
+                    requiredBlocks = 15;
+                    minBlockSize = 15;
+                    maxBlockSize = 21;
+                    break;
+                default:
+                    throw new ArgumentException("Unsupported size. Only 5, 7, 10, or 15 are allowed.");
             }
 
-            // Устанавливаем правильное количество стежков и обновляем текст
+            bool isValid = false;
+            int maxAttempts = 100; // Ліміт спроб для уникнення зациклення
+            int attemptCount = 0;
+
+            // Генерація рівня з перевіркою на валідність
+            while (!isValid && attemptCount < maxAttempts)
+            {
+                _graph.GenerateLevel(size, minBlockSize, maxBlockSize);
+                isValid = ValidateLevel();
+                attemptCount++;
+            }
+
+            // Встановлення правильного кількості стежків і оновлення тексту
             _correctStitchCount = _initialConnections.Count;
             TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
+
+
 
 
         private bool ValidateLevel()
@@ -920,10 +1004,6 @@ namespace WpfApp1
             }
         }
 
-
-
-
-
         private Line CreateConnectionLine(Node node, Node neighbor)
         {
             double cellSize = 40;
@@ -998,7 +1078,6 @@ namespace WpfApp1
             _initialConnections.Clear(); // Очищаем список правильных стежков из предыдущей игры
 
             // Генерируем новый уровень
-            _graph.GenerateLevel(size);
             GenerateValidLevel(size);
 
             // Рисуем новый граф и соединения
