@@ -406,9 +406,9 @@ namespace WpfApp1
                 }
             }
 
-            // Обновляем необходимое количество стежков после их генерации
-            _correctStitchCount = _initialConnections.Count;
-            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
+            //// Обновляем необходимое количество стежков после их генерации
+            //_correctStitchCount = _initialConnections.Count;
+            //TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
 
 
@@ -804,8 +804,8 @@ namespace WpfApp1
 
         private void UpdateCurrentStitchCount()
         {
-            int currentStitchCount = _activeConnections.Count;
-            CurrentStitchCountText.Text = $"Текущее количество стежков: {currentStitchCount}";
+            //int currentStitchCount = _activeConnections.Count;
+            //CurrentStitchCountText.Text = $"Текущее количество стежков: {currentStitchCount}";
         }
 
         private void ToggleConnection(Node node, Node neighbor)
