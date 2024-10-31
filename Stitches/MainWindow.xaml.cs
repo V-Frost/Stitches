@@ -312,36 +312,36 @@ namespace WpfApp1
             _initialConnections.Add((node1, node2));
 
             // Отрисовка линии и точек, как в предыдущем примере
-/*            Line line = new Line
-            {
-                X1 = node1.X * cellSize + centerOffset,
-                Y1 = node1.Y * cellSize + centerOffset,
-                X2 = node2.X * cellSize + centerOffset,
-                Y2 = node2.Y * cellSize + centerOffset,
-                Stroke = Brushes.Red,
-                StrokeThickness = lineThickness
-            };
-            MyCanvas.Children.Add(line);
+            //Line line = new Line
+            // {
+            //     X1 = node1.X * cellSize + centerOffset,
+            //     Y1 = node1.Y * cellSize + centerOffset,
+            //     X2 = node2.X * cellSize + centerOffset,
+            //     Y2 = node2.Y * cellSize + centerOffset,
+            //     Stroke = Brushes.Red,
+            //     StrokeThickness = lineThickness
+            // };
+            // MyCanvas.Children.Add(line);
 
-            Ellipse startDot = new Ellipse
-            {
-                Width = dotSize,
-                Height = dotSize,
-                Fill = Brushes.Red
-            };
-            Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
-            Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
-            MyCanvas.Children.Add(startDot);
+                // Ellipse startDot = new Ellipse
+                // {
+                //     Width = dotSize,
+                //     Height = dotSize,
+                //     Fill = Brushes.Red
+                // };
+                // Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
+                // Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
+                // MyCanvas.Children.Add(startDot);
 
-            Ellipse endDot = new Ellipse
-            {
-                Width = dotSize,
-                Height = dotSize,
-                Fill = Brushes.Red
-            };
-            Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
-            Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
-            MyCanvas.Children.Add(endDot);*/
+                // Ellipse endDot = new Ellipse
+                // {
+                //     Width = dotSize,
+                //     Height = dotSize,
+                //     Fill = Brushes.Red
+                // };
+                // Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
+                // Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
+                // MyCanvas.Children.Add(endDot);
         }
 
 
