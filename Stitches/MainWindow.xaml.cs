@@ -311,37 +311,38 @@ namespace WpfApp1
             // Добавляем соединение в список начальных красных стежков
             _initialConnections.Add((node1, node2));
 
+            //response
             // Отрисовка линии и точек, как в предыдущем примере
-            //Line line = new Line
-            // {
-            //     X1 = node1.X * cellSize + centerOffset,
-            //     Y1 = node1.Y * cellSize + centerOffset,
-            //     X2 = node2.X * cellSize + centerOffset,
-            //     Y2 = node2.Y * cellSize + centerOffset,
-            //     Stroke = Brushes.Red,
-            //     StrokeThickness = lineThickness
-            // };
-            // MyCanvas.Children.Add(line);
+            Line line = new Line
+            {
+                X1 = node1.X * cellSize + centerOffset,
+                Y1 = node1.Y * cellSize + centerOffset,
+                X2 = node2.X * cellSize + centerOffset,
+                Y2 = node2.Y * cellSize + centerOffset,
+                Stroke = Brushes.Red,
+                StrokeThickness = lineThickness
+            };
+            MyCanvas.Children.Add(line);
 
-                // Ellipse startDot = new Ellipse
-                // {
-                //     Width = dotSize,
-                //     Height = dotSize,
-                //     Fill = Brushes.Red
-                // };
-                // Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
-                // Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
-                // MyCanvas.Children.Add(startDot);
+            Ellipse startDot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Red
+            };
+            Canvas.SetLeft(startDot, node1.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(startDot, node1.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(startDot);
 
-                // Ellipse endDot = new Ellipse
-                // {
-                //     Width = dotSize,
-                //     Height = dotSize,
-                //     Fill = Brushes.Red
-                // };
-                // Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
-                // Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
-                // MyCanvas.Children.Add(endDot);
+            Ellipse endDot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Red
+            };
+            Canvas.SetLeft(endDot, node2.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(endDot, node2.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(endDot);
         }
 
 
@@ -407,8 +408,8 @@ namespace WpfApp1
             }
 
             //// Обновляем необходимое количество стежков после их генерации
-            //_correctStitchCount = _initialConnections.Count;
-            //TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
+            _correctStitchCount = _initialConnections.Count;
+            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
 
 
@@ -597,19 +598,7 @@ namespace WpfApp1
                     MyCanvas.Children.Remove(dotInCell);
                 }
             }
-            else
-            {
-                // Если точки нет, добавляем новую точку без стежка
-                Ellipse dot = new Ellipse
-                {
-                    Width = dotSize,
-                    Height = dotSize,
-                    Fill = Brushes.Black
-                };
-                Canvas.SetLeft(dot, x * cellSize + centerOffset);
-                Canvas.SetTop(dot, y * cellSize + centerOffset);
-                MyCanvas.Children.Add(dot);
-            }
+
         }
 
 
@@ -639,7 +628,7 @@ namespace WpfApp1
                     else
                     {
                         // Если это тот же блок, добавляем вторую точку
-                        ToggleDot(currentNode.X, currentNode.Y);
+
                     }
                     _isDragging = false; // Останавливаем рисование
                 }
@@ -943,10 +932,37 @@ namespace WpfApp1
         private void CheckButton_Click(object sender, RoutedEventArgs e)
         {
             if (AreConnectionsMatching())
+            {
+                // Остановим таймер
+                _timer.Stop();
+
+                // Скрываем подсказки
+                foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
+                {
+                    hint.Visibility = Visibility.Hidden;
+                }
+
+                // Отображаем изображение победы
+                Image winImage = new Image
+                {
+                    Source = new BitmapImage(new Uri("E:/Stitches/Stitches/Image/win.png")),
+                    Stretch = Stretch.Fill,
+                    Width = MyCanvas.Width,
+                    Height = MyCanvas.Height,
+                    Visibility = Visibility.Visible
+                };
+                Canvas.SetLeft(winImage, 0);
+                Canvas.SetTop(winImage, 0);
+                MyCanvas.Children.Add(winImage);
+
                 MessageBox.Show("Поздравляем! Все стежки совпадают, вы выиграли!");
+            }
             else
+            {
                 MessageBox.Show("Не готово для победы.");
+            }
         }
+
 
 
         private bool IsGraphConnected()
@@ -973,6 +989,19 @@ namespace WpfApp1
 
         private void RestartButton_Click(object sender, RoutedEventArgs e)
         {
+            // Удаляем изображение победы, если оно есть
+            var winImage = MyCanvas.Children.OfType<Image>().FirstOrDefault(img => img.Source.ToString().Contains("win.png"));
+            if (winImage != null)
+            {
+                MyCanvas.Children.Remove(winImage);
+            }
+
+            // Показываем подсказки
+            foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
+            {
+                hint.Visibility = Visibility.Visible;
+            }
+
             // Если игра на паузе, снимаем её с паузы перед рестартом
             if (_isPaused)
             {
@@ -981,15 +1010,7 @@ namespace WpfApp1
                 {
                     hint.Visibility = Visibility.Visible;
                 }
-                _timer.Start();
                 _isPaused = false;
-            }
-
-            // Удаляем старый оверлей паузы, если он есть
-            if (_pauseOverlay != null)
-            {
-                MyCanvas.Children.Remove(_pauseOverlay);
-                _pauseOverlay = null;
             }
 
             // Очищаем игровое поле и переменные
@@ -1023,7 +1044,12 @@ namespace WpfApp1
 
             // Сбрасываем и запускаем таймер
             ResetTimer();
+            StartTimer(); // Запуск таймера автоматически после рестарта
         }
+
+
+
+
 
     }
 }
