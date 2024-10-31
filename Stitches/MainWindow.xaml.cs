@@ -815,26 +815,25 @@ namespace WpfApp1
             double dotSize = 10;
             double centerOffset = cellSize / 2;
 
-            // Проверяем, есть ли уже линия (стежок) между узлами
-            if (_activeConnections.TryGetValue(node, out Line existingLineNode) &&
-                _activeConnections.TryGetValue(neighbor, out Line neighborLine) &&
-                existingLineNode == neighborLine)
+            // Перевіряємо, чи є з'єднання від node до іншого вузла
+            if (_activeConnections.TryGetValue(node, out Line existingLine))
             {
-                // Если стежок существует, удаляем его с холста и из списка активных стежков
-                RemoveConnection(existingLineNode);
-                _activeConnections.Remove(node);
-                _activeConnections.Remove(neighbor);
-
-                // Обновляем количество текущих стежков
-                UpdateCurrentStitchCount();
-                return;
+                // Видаляємо існуюче з'єднання з будь-яким іншим вузлом для node
+                RemoveConnection(existingLine);
             }
 
-            // Если стежка между узлами нет, добавляем его
+            // Перевіряємо, чи є з'єднання від neighbor до іншого вузла
+            if (_activeConnections.TryGetValue(neighbor, out Line neighborExistingLine))
+            {
+                // Видаляємо існуюче з'єднання з будь-яким іншим вузлом для neighbor
+                RemoveConnection(neighborExistingLine);
+            }
+
+            // Видаляємо точки на обраних вузлах, якщо вони є
             RemoveDotAt(node.X, node.Y);
             RemoveDotAt(neighbor.X, neighbor.Y);
 
-            // Создаем новую линию (стежок)
+            // Створюємо новий стежок
             Line newLine = new Line
             {
                 X1 = node.X * cellSize + centerOffset,
@@ -845,18 +844,19 @@ namespace WpfApp1
                 StrokeThickness = lineThickness
             };
 
+            // Додаємо новий стежок на полотно
             MyCanvas.Children.Add(newLine);
 
-            // Создаем точки и связываем их со стежком
+            // Створюємо точки на початку і кінці стежка і прив'язуємо їх до лінії
             Ellipse startDot = CreateDot(node, dotSize, centerOffset, newLine);
             Ellipse endDot = CreateDot(neighbor, dotSize, centerOffset, newLine);
 
-            // Связываем точки с линией для удобного удаления
+            // Прив'язуємо точки до лінії для зручного видалення
             newLine.Tag = new List<Ellipse> { startDot, endDot };
             _activeConnections[node] = newLine;
             _activeConnections[neighbor] = newLine;
 
-            // Обновляем количество текущих стежков
+            // Оновлюємо кількість поточних стежків
             UpdateCurrentStitchCount();
         }
 
