@@ -107,7 +107,6 @@
     <Resource Include="Image\done.png" />
     <Resource Include="Image\magnifierMinus.png" />
     <Resource Include="Image\magnifierPlus.png" />
-    <Resource Include="Image\new.png" />
     <Resource Include="Image\pause.png" />
     <Resource Include="Image\restart.png" />
     <Resource Include="Image\setings.png" />
@@ -115,6 +114,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CustomToolNamespace>wait.png</CustomToolNamespace>
     </Resource>
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Image\win.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
 
-        Title="Stitches" Width="550" Height="634" Background="White">
+        Title="Stitches" Width="645" Height="645" Background="White">
     <Grid>
 
         <!-- Таймер -->
@@ -59,6 +59,17 @@
             <Image Source="Image/pause.png" Stretch="Uniform" Margin="-8,-8,-8,-7"/>
         </Button>
 
+        <Button x:Name="ChangesButton" 
+        Width="65" Height="65" 
+        Click="ChangesButton_Click"
+        HorizontalAlignment="Right" 
+        VerticalAlignment="Top"
+        Margin="0,100,15,0"
+        BorderBrush="Transparent"
+        Background="Transparent">
+            <Image Source="E:/Stitches/Stitches/Image/changes.png" Margin="-8,-8,-8,-7"/>
+        </Button>
+
         <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,510,0,0" Width="410">
             <!-- Позначки для значень слайдера -->
             <Grid.RowDefinitions>
@@ -89,6 +100,46 @@
             IsSnapToTickEnabled="True"
             />
         </Grid>
+
+        <StackPanel x:Name="SubButtonsPanel" 
+            Orientation="Vertical" 
+            Visibility="Collapsed"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="20,180,28,0">
+            <Button x:Name="CrossButton" 
+      
+            Width="40" Height="40" 
+            Click="CrossButton_Click"
+            BorderBrush="Transparent"
+            Background="Transparent">
+                <Image Source="E:/Stitches/Stitches/Image/cross.png"/>
+            </Button>
+            <Button x:Name="CommonButton" 
+                    Margin="0,5,0,5"
+            Width="40" Height="40" 
+            Click="CommonButton_Click"
+            BorderBrush="Transparent"
+            Background="Transparent">
+                <Image Source="E:/Stitches/Stitches/Image/common.png"/>
+            </Button>
+            <Button x:Name="EraserButton" 
+                    Margin="0,5,0,5"
+            Width="40" Height="40" 
+            Click="EraserButton_Click"
+            BorderBrush="Transparent"
+            Background="Transparent">
+                <Image Source="E:/Stitches/Stitches/Image/eraser.png"/>
+            </Button>
+            <Button x:Name="ColorButton" 
+                    Margin="0,5,0,5"
+            Width="40" Height="40" 
+            Click="ColorButton_Click"
+            BorderBrush="Transparent"
+            Background="Transparent">
+                <Image Source="E:/Stitches/Stitches/Image/color.png"/>
+            </Button>
+        </StackPanel>
 
 
 
