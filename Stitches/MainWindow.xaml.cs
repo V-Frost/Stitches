@@ -1151,10 +1151,5 @@ namespace WpfApp1
             // Перезапускаємо таймер
             StartTimer();
         }
-
-
-
-
-
     }
 }
