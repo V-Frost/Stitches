@@ -51,6 +51,8 @@ namespace WpfApp1
 
         private int _correctStitchCount;
 
+        private string currentMode = "Common"; // По умолчанию - режим рисования стежков
+        private SolidColorBrush selectedColor = Brushes.Yellow; // Цвет по умолчанию
 
         private void ClearStitchesAndDots()
         {
@@ -429,6 +431,109 @@ namespace WpfApp1
 
             //// Обновляем необходимое количество стежков после их генерации
             _correctStitchCount = _initialConnections.Count;
+        }
+
+        // Обработчик для основной кнопки, чтобы показывать или скрывать панель с кнопками
+        private void ChangesButton_Click(object sender, RoutedEventArgs e)
+        {
+            SubButtonsPanel.Visibility =
+                SubButtonsPanel.Visibility == Visibility.Collapsed ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // Обработчик для кнопки "Крестик"
+        private void CrossButton_Click(object sender, RoutedEventArgs e)
+        {
+            currentMode = "Cross";
+        }
+
+        // Обработчик для кнопки "Обычный режим"
+        private void CommonButton_Click(object sender, RoutedEventArgs e)
+        {
+            currentMode = "Common";
+        }
+
+        // Обработчик для кнопки "Ластик"
+        private void EraserButton_Click(object sender, RoutedEventArgs e)
+        {
+            currentMode = "Eraser";
+        }
+
+        // Обработчик для кнопки "Цвет"
+        private void ColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            currentMode = "Color";
+            ShowColorSelectionMenu(); // Открываем меню выбора цвета
+        }
+
+        private void ShowColorSelectionMenu()
+        {
+            var colorMenu = new ContextMenu();
+
+            // Определение цветовых опций
+            var colors = new Dictionary<string, SolidColorBrush>
+            {
+                { "Yellow", Brushes.Yellow },
+                { "Green", Brushes.Green },
+                { "Blue", Brushes.LightBlue },
+                { "Red", Brushes.Red },
+                { "Gray", Brushes.Gray }
+            };
+
+            foreach (var color in colors)
+            {
+                var menuItem = new MenuItem { Header = color.Key, Background = color.Value };
+                menuItem.Click += (s, e) =>
+                {
+                    selectedColor = color.Value; // Устанавливаем выбранный цвет
+                };
+                colorMenu.Items.Add(menuItem);
+            }
+
+            // Открываем меню под кнопкой "Цвет"
+            colorMenu.PlacementTarget = ColorButton;
+            colorMenu.IsOpen = true;
+        }
+
+
+        private void Cell_Click(object sender, MouseButtonEventArgs e)
+        {
+            var cell = sender as Border;
+
+            switch (currentMode)
+            {
+                case "Cross":
+                    AddCrossToCell(cell);
+                    break;
+                case "Common":
+                    StartDrawingStitch(cell);
+                    break;
+                case "Eraser":
+                    ClearCell(cell);
+                    break;
+                case "Color":
+                    ApplySelectedColorToCell(cell);
+                    break;
+            }
+        }
+
+        private void AddCrossToCell(Border cell)
+        {
+            // Логика для добавления крестика
+        }
+
+        private void StartDrawingStitch(Border cell)
+        {
+            // Логика для рисования стежка
+        }
+
+        private void ClearCell(Border cell)
+        {
+            // Логика для очистки клетки
+        }
+
+        private void ApplySelectedColorToCell(Border cell)
+        {
+            // Логика для применения выбранного цвета
         }
 
 

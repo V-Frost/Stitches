@@ -101,7 +101,6 @@
     <Resource Include="Image\done.png" />
     <Resource Include="Image\magnifierMinus.png" />
     <Resource Include="Image\magnifierPlus.png" />
-    <Resource Include="Image\new.png" />
     <Resource Include="Image\pause.png" />
     <Resource Include="Image\restart.png" />
     <Resource Include="Image\setings.png" />
