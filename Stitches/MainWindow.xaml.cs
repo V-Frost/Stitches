@@ -395,6 +395,54 @@ namespace WpfApp1
         }
 
 
+        private void DrawStitchWithDots(Node node1, Node node2)
+        {
+            double cellSize = 40;
+            double lineThickness = 4;
+            double dotSize = 8; // Dot size for better visibility on a denser grid
+            double centerOffset = cellSize / 2;
+
+            // Create the line (stitch) between node1 and node2
+            Line line = new Line
+            {
+                X1 = node1.X * cellSize + centerOffset,
+                Y1 = node1.Y * cellSize + centerOffset,
+                X2 = node2.X * cellSize + centerOffset,
+                Y2 = node2.Y * cellSize + centerOffset,
+                Stroke = Brushes.Red,
+                StrokeThickness = lineThickness
+            };
+            MyCanvas.Children.Add(line);
+
+            // Create dots at the start and end of the line
+            Ellipse startDot = CreateDot(node1, dotSize, line);
+            Ellipse endDot = CreateDot(node2, dotSize, line);
+
+            // Tagging the line with the dots for future reference (e.g., removal)
+            line.Tag = new List<Ellipse> { startDot, endDot };
+        }
+
+        // Method to create and place a dot
+        // Adjusted method definition
+        private Ellipse CreateDot(Node node, double dotSize, Line associatedLine)
+        {
+            double centerOffset = cellSize / 2;
+            Ellipse dot = new Ellipse
+            {
+                Width = dotSize,
+                Height = dotSize,
+                Fill = Brushes.Black, // Set dot color to black
+                Tag = associatedLine // Associate the dot with the line
+            };
+
+            // Set dot position at the center of the node
+            Canvas.SetLeft(dot, node.X * cellSize + centerOffset - dotSize / 2);
+            Canvas.SetTop(dot, node.Y * cellSize + centerOffset - dotSize / 2);
+            MyCanvas.Children.Add(dot);
+
+            return dot;
+        }
+
 
 
         // Метод для з'єднання всіх сусідніх блоків
@@ -852,8 +900,8 @@ namespace WpfApp1
             MyCanvas.Children.Add(newLine);
 
             // Створюємо точки на початку і кінці стежка і прив'язуємо їх до лінії
-            Ellipse startDot = CreateDot(node, dotSize, centerOffset, newLine);
-            Ellipse endDot = CreateDot(neighbor, dotSize, centerOffset, newLine);
+            Ellipse startDot = CreateDot(node, dotSize, newLine);
+            Ellipse endDot = CreateDot(neighbor, dotSize, newLine);
 
             // Прив'язуємо точки до лінії для зручного видалення
             newLine.Tag = new List<Ellipse> { startDot, endDot };
@@ -866,36 +914,7 @@ namespace WpfApp1
 
 
         // Метод создания точки для подключения к стежку
-        private Ellipse CreateDot(Node node, double dotSize, double centerOffset, Line associatedLine = null)
-        {
-            Ellipse dot = new Ellipse
-            {
-                Width = dotSize,
-                Height = dotSize,
-                Fill = Brushes.Black,
-                Tag = associatedLine // Связываем точку со стежком, если он есть
-            };
-
-            Canvas.SetLeft(dot, node.X * 40 + centerOffset - dotSize / 2);
-            Canvas.SetTop(dot, node.Y * 40 + centerOffset - dotSize / 2);
-            MyCanvas.Children.Add(dot);
-
-            // Устанавливаем событие для удаления точки
-            dot.MouseLeftButtonDown += (s, e) =>
-            {
-                if (dot.Tag is Line line) // Проверяем, связана ли точка со стежком
-                {
-                    RemoveDotWithStitch(line);
-                }
-                else
-                {
-                    RemoveDotIfNoConnection(dot);
-                }
-                e.Handled = true; // Останавливаем распространение события
-            };
-
-            return dot;
-        }
+        
 
         // Новый метод для удаления точки вместе со стежком и обновления счетчика
         private void RemoveDotWithStitch(Line line)
