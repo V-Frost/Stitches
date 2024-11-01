@@ -10,7 +10,7 @@ namespace WpfApp1
         public int Y { get; set; }
         public int GroupID { get; set; } = -1;
         public List<Node> Neighbors { get; set; } = new List<Node>();
-        public bool HasConnection { get; set; } = false;
+        public bool HasConnection { get; set; } = false; // Нове поле для позначення наявності з'єднання
 
         public Node(int x, int y)
         {
@@ -27,164 +27,182 @@ namespace WpfApp1
 
         public void GenerateLevel(int size, int minBlockSize = 4, int maxBlockSize = 10)
         {
-            Nodes.Clear();
-            List<List<Node>> blocks = new List<List<Node>>();
-
-            // Ініціалізація поля
-            for (int x = 0; x < size; x++)
+            bool isValid = false;
+            while (!isValid)
             {
-                for (int y = 0; y < size; y++)
-                {
-                    Nodes.Add(new Node(x, y));
-                }
-            }
+                // Очищуємо попередні вузли
+                Nodes.Clear();
 
-            int[,] startMatrix = InitializeStartMatrix(size);
-            int groupId = 0;
-            Random random = new Random();
-
-            // Створення блоків з фіксованих точок у матриці
-            for (int x = 0; x < size; x++)
-            {
-                for (int y = 0; y < size; y++)
+                // Ініціалізуємо всі клітинки для поля розміром size x size
+                for (int x = 0; x < size; x++)
                 {
-                    if (startMatrix[x, y] == 1)
+                    for (int y = 0; y < size; y++)
                     {
-                        List<Node> newBlock = GenerateBlockFromMatrix(x, y, groupId++, minBlockSize, maxBlockSize, random);
-                        if (newBlock.Count >= minBlockSize)
-                        {
-                            blocks.Add(newBlock);
-                        }
-                        else
-                        {
-                            // Вилучаємо блоки, які не відповідають мінімальному розміру
-                            foreach (var node in newBlock)
-                            {
-                                node.GroupID = -1;
-                            }
-                        }
+                        Nodes.Add(new Node(x, y));
                     }
                 }
+
+                // Встановлюємо кількість блоків відповідно до розміру поля
+                int blockCount = size == 5 || size == 7 ? 5 : size == 10 ? 8 : size == 15 ? 20 : 5;
+
+                Random random = new Random();
+                int groupId = 0;
+                List<List<Node>> blocks = new List<List<Node>>();
+
+                // Генеруємо блоки поки не досягнемо необхідної кількості
+                for (int i = 0; i < blockCount; i++)
+                {
+                    Node seed = Nodes.Where(n => n.GroupID == -1).OrderBy(n => random.Next()).FirstOrDefault();
+                    if (seed == null) break;
+
+                    List<Node> newBlock = new List<Node>();
+                    seed.GroupID = groupId;
+                    newBlock.Add(seed);
+
+                    while (newBlock.Count < minBlockSize)
+                    {
+                        List<Node> expandableNodes = newBlock
+                            .SelectMany(n => GetUnassignedNeighbors(n))
+                            .Distinct()
+                            .ToList();
+
+                        if (expandableNodes.Count == 0) break;
+
+                        Node nextNode = expandableNodes[random.Next(expandableNodes.Count)];
+                        nextNode.GroupID = groupId;
+                        newBlock.Add(nextNode);
+                    }
+
+                    if (newBlock.Count >= minBlockSize)
+                    {
+                        blocks.Add(newBlock);
+                        groupId++;
+                    }
+                }
+
+                EnsureAllNodesAssigned(blocks, groupId);
+
+                // Перевіряємо, чи рівень коректний
+                isValid = IsValidLevel();
             }
 
-            EnsureNoSingleNodeBlocks(blocks, random);
-
-            EnsureLevelSolvability(blocks);
+            // Генеруємо підказки для рядків та стовпців
             GenerateHints(size, size);
         }
 
-        private List<Node> GenerateBlockFromMatrix(int startX, int startY, int groupId, int minBlockSize, int maxBlockSize, Random random)
+        private bool IsValidLevel()
+        {
+            foreach (var node in Nodes)
+            {
+                int thickBorders = 0;
+
+                // Перевіряємо кожен сусідній блок на наявність з'єднання (товстий бордер)
+                if (!Nodes.Any(n => n.X == node.X && n.Y == node.Y - 1 && n.GroupID == node.GroupID)) thickBorders++; // Верх
+                if (!Nodes.Any(n => n.X == node.X && n.Y == node.Y + 1 && n.GroupID == node.GroupID)) thickBorders++; // Низ
+                if (!Nodes.Any(n => n.X == node.X - 1 && n.Y == node.Y && n.GroupID == node.GroupID)) thickBorders++; // Ліворуч
+                if (!Nodes.Any(n => n.X == node.X + 1 && n.Y == node.Y && n.GroupID == node.GroupID)) thickBorders++; // Праворуч
+
+                // Якщо клітинка має більше 3 товстих бордерів або ізольований блок, рівень некоректний
+                if (thickBorders > 3 || IsIsolatedSingleBlock(node))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+
+
+        // Перевіряє, чи є клітинка ізольованим одиничним блоком
+        private bool IsIsolatedSingleBlock(Node node)
+        {
+            return node.GroupID != -1 && Nodes.Count(n => n.GroupID == node.GroupID) == 1;
+        }
+
+
+        // Перевіряє, чи всі клітинки належать до блоку, і об’єднує їх за необхідності
+        private void EnsureAllNodesAssigned(List<List<Node>> blocks, int groupId)
+        {
+            List<Node> unassignedNodes = Nodes.Where(n => n.GroupID == -1).ToList();
+            Random random = new Random();
+
+            foreach (var node in unassignedNodes)
+            {
+                // Об'єднуємо незакріплену клітинку з випадковим сусіднім блоком
+                List<Node> neighborBlocks = GetNeighborBlocks(node);
+                if (neighborBlocks.Count > 0)
+                {
+                    Node neighborToMerge = neighborBlocks[random.Next(neighborBlocks.Count)];
+                    node.GroupID = neighborToMerge.GroupID;
+                    blocks.First(b => b[0].GroupID == neighborToMerge.GroupID).Add(node);
+                }
+                else
+                {
+                    // Створюємо новий блок, якщо сусідів немає (як запасний варіант)
+                    node.GroupID = groupId++;
+                    blocks.Add(new List<Node> { node });
+                }
+            }
+        }
+
+
+        public int GetCellValue(int row, int col)
+        {
+            var node = Nodes.FirstOrDefault(n => n.X == col && n.Y == row);
+            return node != null && node.HasConnection ? 1 : 0;
+        }
+
+        private List<Node> GenerateBlockFromStart(int startX, int startY, int groupId, int minBlockSize, int maxBlockSize, Random random)
         {
             List<Node> block = new List<Node>();
-            Queue<Node> toVisit = new Queue<Node>();
-
             Node startNode = Nodes.FirstOrDefault(n => n.X == startX && n.Y == startY);
             if (startNode == null) return block;
 
             startNode.GroupID = groupId;
             block.Add(startNode);
-            toVisit.Enqueue(startNode);
 
-            // Розширюємо блок, доки він не досягне мінімального розміру
-            while (block.Count < minBlockSize && toVisit.Count > 0)
+            List<Node> unassignedNeighbors = GetUnassignedNeighbors(startNode);
+
+            // Розширюємо блок, щоб досягти мінімального розміру, але не перевищити максимальний розмір
+            while (block.Count < minBlockSize && unassignedNeighbors.Count > 0)
             {
-                Node currentNode = toVisit.Dequeue();
-                List<Node> unassignedNeighbors = GetUnassignedNeighbors(currentNode)
-                    .OrderBy(_ => random.Next()) // Випадковий порядок сусідів
-                    .ToList();
+                Node nextNode = unassignedNeighbors[random.Next(unassignedNeighbors.Count)];
+                nextNode.GroupID = groupId;
+                block.Add(nextNode);
 
-                foreach (var neighbor in unassignedNeighbors)
-                {
-                    if (block.Count >= maxBlockSize) break;
-
-                    neighbor.GroupID = groupId;
-                    block.Add(neighbor);
-                    toVisit.Enqueue(neighbor);
-
-                    if (block.Count >= minBlockSize) break;
-                }
+                // Оновлюємо список сусідів
+                unassignedNeighbors = GetUnassignedNeighbors(nextNode).Where(n => !block.Contains(n)).ToList();
             }
 
-            return block;
-        }
-
-        private int[,] InitializeStartMatrix(int size)
-        {
-            // Точки для ініціалізації блоків залежно від розміру
-            if (size == 5)
-            {
-                return new int[,]
-                {
-                    { 1, 0, 0, 0, 1 },
-                    { 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 1, 0 },
-                    { 1, 0, 0, 0, 0 }
-                };
-            }
-            else if (size == 7)
-            {
-                return new int[,]
-                {
-                    { 1, 0, 0, 0, 1, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 1, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0, 1, 0 },
-                    { 0, 0, 1, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0 },
-                    { 1, 0, 0, 0, 0, 0, 1 }
-                };
-            }
-            else if (size == 10)
-            {
-                return new int[,]
-                {
-                    { 1, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                    { 0, 0, 1, 0, 0, 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 1, 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
-                    { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                    { 0, 0, 0, 1, 0, 0, 0, 1, 0, 0 }
-                };
-            }
-            else if (size == 15)
-            {
-                return new int[15, 15]; // Додайте конфігурацію для 15x15 за потреби
-            }
-            else
-            {
-                throw new ArgumentException("Unsupported size");
-            }
-        }
-
-        private List<Node> GetUnassignedNeighbors(Node node)
-        {
-            return Nodes.Where(n =>
-                n.GroupID == -1 &&
-                ((Math.Abs(n.X - node.X) == 1 && n.Y == node.Y) ||
-                 (Math.Abs(n.Y - node.Y) == 1 && n.X == node.X))
-            ).ToList();
+            // Якщо блок не досяг мінімального розміру, повертаємо порожній блок (ігноруємо його)
+            return block.Count >= minBlockSize ? block : new List<Node>();
         }
 
         private void EnsureNoSingleNodeBlocks(List<List<Node>> blocks, Random random)
         {
-            foreach (var block in blocks.ToList())
+            bool hasSingleBlocks = true;
+            while (hasSingleBlocks)
             {
-                if (block.Count < 2)
-                {
-                    Node singleNode = block[0];
-                    List<Node> neighborBlocks = GetNeighborBlocks(singleNode);
+                hasSingleBlocks = false;
 
-                    if (neighborBlocks.Count > 0)
+                foreach (var block in blocks.ToList())
+                {
+                    if (block.Count == 1)
                     {
-                        Node neighborToMerge = neighborBlocks[random.Next(neighborBlocks.Count)];
-                        singleNode.GroupID = neighborToMerge.GroupID;
-                        blocks.First(g => g[0].GroupID == neighborToMerge.GroupID).Add(singleNode);
-                        blocks.Remove(block);
+                        hasSingleBlocks = true;
+                        Node singleNode = block[0];
+                        List<Node> neighborBlocks = GetNeighborBlocks(singleNode);
+
+                        if (neighborBlocks.Count > 0)
+                        {
+                            // Знаходимо випадковий сусідній блок для об'єднання
+                            Node neighborToMerge = neighborBlocks[random.Next(neighborBlocks.Count)];
+                            singleNode.GroupID = neighborToMerge.GroupID;
+
+                            // Додаємо одинокий вузол у сусідній блок
+                            blocks.First(g => g[0].GroupID == neighborToMerge.GroupID).Add(singleNode);
+                            blocks.Remove(block); // Видаляємо одинокий блок
+                        }
                     }
                 }
             }
@@ -207,6 +225,19 @@ namespace WpfApp1
             return neighbors;
         }
 
+
+
+
+        private List<Node> GetUnassignedNeighbors(Node node)
+        {
+            // Знаходимо сусідів, які ще не призначені до групи
+            return Nodes.Where(n =>
+                n.GroupID == -1 &&
+                ((Math.Abs(n.X - node.X) == 1 && n.Y == node.Y) ||
+                 (Math.Abs(n.Y - node.Y) == 1 && n.X == node.X))
+            ).ToList();
+        }
+
         private void EnsureLevelSolvability(List<List<Node>> blocks)
         {
             foreach (var block in blocks)
@@ -222,6 +253,7 @@ namespace WpfApp1
             }
         }
 
+
         private void AddEdge(Node node1, Node node2)
         {
             if (!node1.Neighbors.Contains(node2))
@@ -230,13 +262,6 @@ namespace WpfApp1
                 node2.Neighbors.Add(node1);
             }
         }
-
-        public int GetCellValue(int row, int col)
-        {
-            var node = Nodes.FirstOrDefault(n => n.X == col && n.Y == row);
-            return node != null && node.HasConnection ? 1 : 0;
-        }
-
 
         private void GenerateHints(int width, int height)
         {

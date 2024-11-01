@@ -16,86 +16,40 @@ namespace WpfApp1
     {
         private Graph _graph;
         private int size = 5;
-        private Dictionary<Node, Line> _activeConnections = new Dictionary<Node, Line>();
-        private List<(Node, Node)> _initialConnections = new List<(Node, Node)>(); // Список для начальных красных стежков
-        private bool _showCoordinates = false;
-        private bool _hideTimer = false;
-        private bool _nightMode = false;
-        private DispatcherTimer _timer;
-        private int _elapsedSeconds;
-        private Image _pauseOverlay;
-        private bool _isPaused = false;
-        private Node _startNode;
-        private bool _isDragging;
-        private int _correctStitchCount;
-        private bool _isGameInitialized = false; // прапорець для перевірки ініціалізації
+        int cellSize = 40; // Розмір однієї клітинки в пікселях
 
+        private Dictionary<Node, Line> _activeConnections = new Dictionary<Node, Line>();
         public MainWindow()
         {
             InitializeComponent();
-            InitializeGame();
-            _isGameInitialized = true; // Встановлюємо прапорець після повної ініціалізації
-        }
-
-        private void InitializeGame()
-        {
-            int cellSize = 40;
-            MyCanvas.Children.Clear(); // Очищення всіх попередніх об'єктів на Canvas
-
             MyCanvas.Width = size * cellSize;
             MyCanvas.Height = size * cellSize;
             _graph = new Graph();
-            _initialConnections.Clear(); // Очищення початкових з'єднань перед генерацією нового рівня
-            _activeConnections.Clear(); // Очищення активних з'єднань для уникнення конфліктів
-
+            _graph.GenerateLevel(size);
             GenerateValidLevel(size);
             DrawGraph();
             DrawConnections();
-            DisplayHints();
+            DisplayHints(cellSize);
+            //ClearStitchesAndDots();
+            StartTimer(); // Запуск таймера при инициализации окна
         }
 
+        private List<(Node, Node)> _initialConnections = new List<(Node, Node)>(); // Список для начальных красных стежков
 
-        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            if (!_isGameInitialized) return;
+        private bool _showCoordinates = false;
+        private bool _hideTimer = false;
+        private bool _nightMode = false;
 
-            // Тимчасово вимикаємо обробку подій і таймер для безпечної ініціалізації
-            _isGameInitialized = false;
-            _timer?.Stop(); // Зупиняємо таймер, якщо він працює
+        private DispatcherTimer _timer;
+        private int _elapsedSeconds;
 
-            int sliderValue = (int)e.NewValue;
-            HandleSliderValueChange(sliderValue);
+        private Image _pauseOverlay;
+        private bool _isPaused = false;
 
-            // Повторно запускаємо гру і вмикаємо обробку подій після зміни розміру
-            _isGameInitialized = true;
-            StartTimer(); // Запускаємо таймер знову
-        }
+        private Node _startNode;
+        private bool _isDragging;
 
-
-
-        // Метод для обробки значення слайдера
-        private void HandleSliderValueChange(int value)
-        {
-            switch (value)
-            {
-                case 0:
-                    size = 5;
-                    InitializeGame();
-                    break;
-                case 1:
-                    size = 7;
-                    InitializeGame();
-                    break;
-                case 2:
-                    size = 10;
-                    InitializeGame();
-                    break;
-                case 3:
-                    size = 15;
-                    InitializeGame();
-                    break;
-            }
-        }
+        private int _correctStitchCount;
 
 
         private void ClearStitchesAndDots()
@@ -116,17 +70,27 @@ namespace WpfApp1
         {
             if (_isPaused)
             {
-                // Снимаем паузу: показываем изображение и цифры, перезапускаем таймер
+                // Знімаємо паузу: показуємо накладання та підказки, перезапускаємо таймер
                 _pauseOverlay.Visibility = Visibility.Hidden;
+
+                // Відновлюємо видимість всіх підказок
                 foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
                 {
                     hint.Visibility = Visibility.Visible;
                 }
+
+                // Відновлюємо видимість всіх з'єднань (ліній)
+                foreach (var connection in MyCanvas.Children.OfType<Line>())
+                {
+                    connection.Visibility = Visibility.Visible;
+                }
+
+                // Перезапускаємо таймер
                 _timer.Start();
             }
             else
             {
-                // Ставим игру на паузу: скрываем изображение и цифры, останавливаем таймер
+                // Ставимо гру на паузу: приховуємо накладання і підказки, зупиняємо таймер
                 if (_pauseOverlay == null)
                 {
                     _pauseOverlay = new Image
@@ -143,13 +107,23 @@ namespace WpfApp1
                 }
                 _pauseOverlay.Visibility = Visibility.Visible;
 
+                // Приховуємо всі підказки
                 foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
                 {
                     hint.Visibility = Visibility.Hidden;
                 }
 
+                // Приховуємо всі з'єднання (лінії)
+                foreach (var connection in MyCanvas.Children.OfType<Line>())
+                {
+                    connection.Visibility = Visibility.Hidden;
+                }
+
+                // Зупиняємо таймер
                 _timer.Stop();
             }
+
+            // Перемикаємо стан паузи
             _isPaused = !_isPaused;
         }
 
@@ -173,19 +147,32 @@ namespace WpfApp1
 
         private void SetNightMode(bool isNightMode)
         {
-            var background = isNightMode ? Brushes.Black : Brushes.White;
-            var foreground = isNightMode ? Brushes.White : Brushes.Black;
+            ThemeManager.SetNightMode(isNightMode);
 
-            MyCanvas.Background = background;
-            TimerText.Foreground = foreground;
+            // Set main window and canvas colors
+            this.Background = ThemeManager.BackgroundColor;
+            MyCanvas.Background = ThemeManager.CanvasBackgroundColor;
+
+            // Set the timer color
+            TimerText.Foreground = ThemeManager.TimerColor;
+
+            // Update colors for other elements inside the canvas
             foreach (var child in MyCanvas.Children.OfType<UIElement>())
             {
                 if (child is Border border)
-                    border.BorderBrush = foreground;
+                    border.BorderBrush = ThemeManager.BorderColor;
                 if (child is TextBlock textBlock)
-                    textBlock.Foreground = foreground;
+                    textBlock.Foreground = ThemeManager.ForegroundColor;
             }
+
+            // Set slider label colors based on night mode
+            SliderLabel5.Foreground = ThemeManager.HintColor;
+            SliderLabel7.Foreground = ThemeManager.HintColor;
+            SliderLabel10.Foreground = ThemeManager.HintColor;
+            SliderLabel15.Foreground = ThemeManager.HintColor;
         }
+
+
         private void ToggleShowCoordinates(bool show)
         {
             _showCoordinates = show;
@@ -200,15 +187,16 @@ namespace WpfApp1
         private void ToggleNightMode(bool enable)
         {
             _nightMode = enable;
-            SetNightMode(enable);
+            SetNightMode(enable); // Calls the refactored SetNightMode method
         }
+
 
 
         private void SettingsButton_Click(object sender, RoutedEventArgs e)
         {
             var settingsMenu = new ContextMenu();
 
-            var showCoordsMenuItem = new MenuItem { Header = "Показывать координаты на поле", IsCheckable = true, IsChecked = _showCoordinates };
+            var showCoordsMenuItem = new MenuItem { Header = "Показувати координати на пол", IsCheckable = true, IsChecked = _showCoordinates };
             showCoordsMenuItem.Click += (s, ev) =>
             {
                 _showCoordinates = !_showCoordinates;
@@ -216,7 +204,7 @@ namespace WpfApp1
                 showCoordsMenuItem.IsChecked = _showCoordinates;
             };
 
-            var hideTimerMenuItem = new MenuItem { Header = "Скрыть таймер", IsCheckable = true, IsChecked = _hideTimer };
+            var hideTimerMenuItem = new MenuItem { Header = "Приховати таймер", IsCheckable = true, IsChecked = _hideTimer };
             hideTimerMenuItem.Click += (s, ev) =>
             {
                 _hideTimer = !_hideTimer;
@@ -224,7 +212,7 @@ namespace WpfApp1
                 hideTimerMenuItem.IsChecked = _hideTimer;
             };
 
-            var nightModeMenuItem = new MenuItem { Header = "Ночной режим", IsCheckable = true, IsChecked = _nightMode };
+            var nightModeMenuItem = new MenuItem { Header = "Нічний режим", IsCheckable = true, IsChecked = _nightMode };
             nightModeMenuItem.Click += (s, ev) =>
             {
                 _nightMode = !_nightMode;
@@ -243,7 +231,7 @@ namespace WpfApp1
 
         private void ShowCoordinates(bool show)
         {
-            // Удаляем старые координаты
+            // Remove old coordinates
             var existingCoordinates = MyCanvas.Children.OfType<TextBlock>().Where(tb => tb.Tag != null && tb.Tag.ToString() == "Coordinate");
             foreach (var coord in existingCoordinates.ToList())
             {
@@ -252,7 +240,10 @@ namespace WpfApp1
 
             if (!show) return;
 
-            // Отображаем буквенные обозначения сверху с отступом в 30 пикселей
+            // Get the current color from the ThemeManager based on night mode
+            var coordinateColor = ThemeManager.HintColor; // Assume this is the correct color, based on night mode settings
+
+            // Display column coordinates (letters) at the top
             for (int x = 0; x < size; x++)
             {
                 var letter = (char)('A' + x);
@@ -260,89 +251,71 @@ namespace WpfApp1
                 {
                     Text = letter.ToString(),
                     FontSize = 14,
-                    Foreground = Brushes.Gray,
+                    Foreground = coordinateColor, // Dynamic color based on theme
                     Tag = "Coordinate"
                 };
-                Canvas.SetLeft(colCoord, x * 40 + 15);
-                Canvas.SetTop(colCoord, -45); // Отступ на 30 пикселей от верхней границы
+
+                // Adjust position based on cellSize with a slight upward adjustment
+                Canvas.SetLeft(colCoord, x * cellSize + (cellSize / 2) - 7); // Centered in the cell horizontally
+                Canvas.SetTop(colCoord, -cellSize / 2 - 20); // Positioned slightly above the grid
                 MyCanvas.Children.Add(colCoord);
             }
 
-            // Отображаем цифровые обозначения сбоку с отступом в 30 пикселей
+            // Display row coordinates (numbers) on the left
             for (int y = 0; y < size; y++)
             {
                 var rowCoord = new TextBlock
                 {
                     Text = (y + 1).ToString(),
                     FontSize = 14,
-                    Foreground = Brushes.Gray,
+                    Foreground = coordinateColor, // Dynamic color based on theme
                     Tag = "Coordinate"
                 };
-                Canvas.SetLeft(rowCoord, -45); // Отступ на 30 пикселей от левой границы
-                Canvas.SetTop(rowCoord, y * 40 + 15);
+
+                // Adjust position based on cellSize with a slight leftward adjustment
+                Canvas.SetLeft(rowCoord, -cellSize / 2 - 25); // Positioned slightly closer to the grid on the left
+                Canvas.SetTop(rowCoord, y * cellSize + (cellSize / 2) - 7); // Centered in the cell vertically
                 MyCanvas.Children.Add(rowCoord);
             }
         }
 
 
-        private void DisplayHints()
+        private void DisplayHints(double cellSize)
         {
-            // Очищаем предыдущие подсказки
+            // Clear previous hints
             MyCanvas.Children.OfType<TextBlock>().ToList().ForEach(tb => MyCanvas.Children.Remove(tb));
 
-            int cellSize = 40;
-
-            // Подсчет и отображение количества точек в каждом ряду
+            // Display row hints
             for (int row = 0; row < size; row++)
             {
-                int rowCount = 0; // Счетчик для ряда
+                int rowCount = _graph.Nodes.Count(n => n.Y == row && n.HasConnection);
 
-                for (int col = 0; col < size; col++)
-                {
-                    // Проверка наличия точки (1) в ячейке
-                    if (_graph.GetCellValue(row, col) == 1)
-                    {
-                        rowCount++;
-                    }
-                }
-
-                // Отображение подсказки для текущего ряда
                 TextBlock rowHint = new TextBlock
                 {
                     Text = rowCount.ToString(),
                     FontSize = 14,
-                    Foreground = Brushes.Black
+                    Foreground = ThemeManager.HintColor // Use ThemeManager for hint color
                 };
 
-                Canvas.SetLeft(rowHint, -20); // Позиция слева от ряда
-                Canvas.SetTop(rowHint, row * cellSize + 15); // Центровка по высоте ряда
+                Canvas.SetLeft(rowHint, -cellSize / 2);
+                Canvas.SetTop(rowHint, row * cellSize + (cellSize / 2) - 7);
                 MyCanvas.Children.Add(rowHint);
             }
 
-            // Подсчет и отображение количества точек в каждом столбце
+            // Display column hints
             for (int col = 0; col < size; col++)
             {
-                int colCount = 0; // Счетчик для столбца
+                int colCount = _graph.Nodes.Count(n => n.X == col && n.HasConnection);
 
-                for (int row = 0; row < size; row++)
-                {
-                    // Проверка наличия точки (1) в ячейке
-                    if (_graph.GetCellValue(row, col) == 1)
-                    {
-                        colCount++;
-                    }
-                }
-
-                // Отображение подсказки для текущего столбца
                 TextBlock colHint = new TextBlock
                 {
                     Text = colCount.ToString(),
                     FontSize = 14,
-                    Foreground = Brushes.Black
+                    Foreground = ThemeManager.HintColor // Use ThemeManager for hint color
                 };
 
-                Canvas.SetLeft(colHint, col * cellSize + 15); // Центровка по ширине столбца
-                Canvas.SetTop(colHint, -20); // Позиция над столбцом
+                Canvas.SetLeft(colHint, col * cellSize + (cellSize / 2) - 7);
+                Canvas.SetTop(colHint, -cellSize / 2);
                 MyCanvas.Children.Add(colHint);
             }
         }
@@ -358,8 +331,9 @@ namespace WpfApp1
             // Добавляем соединение в список начальных красных стежков
             _initialConnections.Add((node1, node2));
 
+            //response
             // Отрисовка линии и точек, как в предыдущем примере
-          Line line = new Line
+            Line line = new Line
             {
                 X1 = node1.X * cellSize + centerOffset,
                 Y1 = node1.Y * cellSize + centerOffset,
@@ -453,9 +427,8 @@ namespace WpfApp1
                 }
             }
 
-            // Обновляем необходимое количество стежков после их генерации
+            //// Обновляем необходимое количество стежков после их генерации
             _correctStitchCount = _initialConnections.Count;
-            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
 
 
@@ -536,54 +509,16 @@ namespace WpfApp1
 
         private void GenerateValidLevel(int size)
         {
-            int requiredBlocks;
-            int minBlockSize;
-            int maxBlockSize;
-
-            switch (size)
-            {
-                case 5:
-                    requiredBlocks = 5;
-                    minBlockSize = 4;
-                    maxBlockSize = 10;
-                    break;
-                case 7:
-                    requiredBlocks = 7;
-                    minBlockSize = 7;
-                    maxBlockSize = 13;
-                    break;
-                case 10:
-                    requiredBlocks = 10;
-                    minBlockSize = 10;
-                    maxBlockSize = 16;
-                    break;
-                case 15:
-                    requiredBlocks = 15;
-                    minBlockSize = 15;
-                    maxBlockSize = 21;
-                    break;
-                default:
-                    throw new ArgumentException("Unsupported size. Only 5, 7, 10, or 15 are allowed.");
-            }
-
             bool isValid = false;
-            int maxAttempts = 100; // Ліміт спроб для уникнення зациклення
-            int attemptCount = 0;
-
-            // Генерація рівня з перевіркою на валідність
-            while (!isValid && attemptCount < maxAttempts)
+            while (!isValid)
             {
-                _graph.GenerateLevel(size, minBlockSize, maxBlockSize);
+                _graph.GenerateLevel(size);
                 isValid = ValidateLevel();
-                attemptCount++;
             }
 
-            // Встановлення правильного кількості стежків і оновлення тексту
+            // Устанавливаем правильное количество стежков и обновляем текст
             _correctStitchCount = _initialConnections.Count;
-            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
         }
-
-
 
 
         private bool ValidateLevel()
@@ -681,19 +616,7 @@ namespace WpfApp1
                     MyCanvas.Children.Remove(dotInCell);
                 }
             }
-            else
-            {
-                // Если точки нет, добавляем новую точку без стежка
-                Ellipse dot = new Ellipse
-                {
-                    Width = dotSize,
-                    Height = dotSize,
-                    Fill = Brushes.Black
-                };
-                Canvas.SetLeft(dot, x * cellSize + centerOffset);
-                Canvas.SetTop(dot, y * cellSize + centerOffset);
-                MyCanvas.Children.Add(dot);
-            }
+
         }
 
 
@@ -723,7 +646,7 @@ namespace WpfApp1
                     else
                     {
                         // Если это тот же блок, добавляем вторую точку
-                        ToggleDot(currentNode.X, currentNode.Y);
+
                     }
                     _isDragging = false; // Останавливаем рисование
                 }
@@ -741,7 +664,6 @@ namespace WpfApp1
         private void DrawGraph()
         {
             MyCanvas.Children.Clear();
-            double cellSize = 40;
             double clickableSize = 10; // Размер кликабельной области
 
             foreach (var node in _graph.Nodes)
@@ -762,9 +684,9 @@ namespace WpfApp1
                 {
                     Width = cellSize,
                     Height = cellSize,
-                    BorderBrush = Brushes.Black,
-                    BorderThickness = borderThickness,
-                    Background = Brushes.Transparent, // Устанавливаем фон, чтобы Border реагировал на клики
+                    BorderBrush = ThemeManager.BorderColor, // Apply theme color
+                    BorderThickness = borderThickness,      // Apply group boundary thickness
+                    Background = Brushes.Transparent,
                     Tag = node
                 };
 
@@ -872,7 +794,6 @@ namespace WpfApp1
 
         private void RemoveDotAt(int x, int y)
         {
-            double cellSize = 40;
             double dotSize = 10;
             double centerOffset = cellSize / 2 - dotSize / 2;
 
@@ -894,7 +815,6 @@ namespace WpfApp1
 
         private void ToggleConnection(Node node, Node neighbor)
         {
-            double cellSize = 40;
             double lineThickness = 4;
             double dotSize = 10;
             double centerOffset = cellSize / 2;
@@ -1006,7 +926,6 @@ namespace WpfApp1
 
         private Line CreateConnectionLine(Node node, Node neighbor)
         {
-            double cellSize = 40;
             double centerOffset = cellSize / 2;
 
             return new Line
@@ -1023,10 +942,37 @@ namespace WpfApp1
         private void CheckButton_Click(object sender, RoutedEventArgs e)
         {
             if (AreConnectionsMatching())
-                MessageBox.Show("Поздравляем! Все стежки совпадают, вы выиграли!");
+            {
+                // Остановим таймер
+                _timer.Stop();
+
+                // Скрываем подсказки
+                foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
+                {
+                    hint.Visibility = Visibility.Hidden;
+                }
+
+                // Отображаем изображение победы
+                Image winImage = new Image
+                {
+                    Source = new BitmapImage(new Uri("pack://application:,,,/Image/win.png")),
+                    Stretch = Stretch.Fill,
+                    Width = MyCanvas.Width,
+                    Height = MyCanvas.Height,
+                    Visibility = Visibility.Visible
+                };
+                Canvas.SetLeft(winImage, 0);
+                Canvas.SetTop(winImage, 0);
+                MyCanvas.Children.Add(winImage);
+
+                MessageBox.Show("Вітаємо! Усі стібки збігаються, ви виграли!");
+            }
             else
-                MessageBox.Show("Не готово для победы.");
+            {
+                MessageBox.Show("Не готове для перемоги.");
+            }
         }
+
 
 
         private bool IsGraphConnected()
@@ -1051,58 +997,164 @@ namespace WpfApp1
             return visited.Count == _graph.Nodes.Count;
         }
 
+        private double CenterCanvas()
+        {
+            // Розраховуємо відступ зліва для центрування
+            double leftMargin = (this.ActualWidth - MyCanvas.ActualWidth) / 2;
+            return leftMargin > 0 ? leftMargin : 0; // Запобігаємо негативним значенням
+        }
+
+        private void SizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+           
+
+            switch ((int)e.NewValue)
+            {
+                case 0:
+                    this.Height = 650;
+                    this.Width = 550;
+                    TimerText.Margin = new Thickness(0, 70, 0, 0);
+                    cellSize = 40;
+                    size = 5;
+                    break;
+                case 1:
+                    this.Height = 650;
+                    this.Width = 550;
+                    TimerText.Margin = new Thickness(0, 50, 0, 0);
+                    cellSize = 40;
+                    size = 7;
+                    break;
+                case 2:
+                    this.Height = 800;
+                    this.Width = 770;
+                    cellSize = 40;
+                    size = 10;
+                    break;
+                case 3:
+                    this.Height = 800;
+                    this.Width = 770;
+                    cellSize = 35;
+                    size = 15;
+                    TimerText.Margin = new Thickness(0, 10, 0, 0);
+                    sliderSize.Margin = new Thickness(0, 0, 0, 70);
+                    panelButtons.Margin = new Thickness(0, 0, 0, 10);
+                    break;
+            }
+
+            // Встановлення розмірів Canvas відповідно до нового розміру поля
+            MyCanvas.Width = size * cellSize;
+            MyCanvas.Height = size * cellSize;
+
+            // Очищення та оновлення вмісту Canvas
+            MyCanvas.Children.Clear();
+            _graph = new Graph();
+            _graph.GenerateLevel(size);
+
+            DrawGraph();
+            DrawConnections();
+            DisplayHints(cellSize);
+
+            ClearStitchesAndDots();
+            ResetTimer();
+            PositionWindowWithinScreenBounds();
+            ShowCoordinates(_showCoordinates);
+
+        }
+
+        private void Slider_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var slider = sender as Slider;
+            if (slider == null)
+                return;
+
+            var mousePosition = e.GetPosition(slider);
+
+            double relativePosition = mousePosition.X / slider.ActualWidth;
+            double newValue = relativePosition * (slider.Maximum - slider.Minimum) + slider.Minimum;
+
+            // Округлюємо нове значення до найближчого числа для точного переходу
+            slider.Value = Math.Round(newValue / slider.TickFrequency) * slider.TickFrequency;
+
+            e.Handled = true; // Запобігаємо стандартній поведінці
+        }
+
+        protected override void OnContentRendered(EventArgs e)
+        {
+            base.OnContentRendered(e);
+            PositionWindowWithinScreenBounds();
+        }
+
+        private void PositionWindowWithinScreenBounds()
+        {
+            var screenHeight = SystemParameters.WorkArea.Height;
+            var screenWidth = SystemParameters.WorkArea.Width;
+
+            if (this.Top + this.Height > screenHeight)
+            {
+                this.Top = screenHeight - this.Height; // Keep window within the screen vertically
+            }
+
+            if (this.Left + this.Width > screenWidth)
+            {
+                this.Left = screenWidth - this.Width; // Keep window within the screen horizontally
+            }
+        }
+
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+
+            this.Left = (SystemParameters.PrimaryScreenWidth - this.ActualWidth) / 2;
+            this.Top = (SystemParameters.PrimaryScreenHeight - this.ActualHeight) / 2;
+
+            // Центруємо основні елементи по ширині
+            SettingsButton.HorizontalAlignment = HorizontalAlignment.Right;
+            TimerText.HorizontalAlignment = HorizontalAlignment.Center;
+            MyCanvas.HorizontalAlignment = HorizontalAlignment.Center;
+            MyCanvas.VerticalAlignment = VerticalAlignment.Center;
+        }
+
+
+
         private void RestartButton_Click(object sender, RoutedEventArgs e)
         {
-            // Если игра на паузе, снимаем её с паузы перед рестартом
+            // Зупиняємо та скидаємо таймер
+            _timer.Stop();
+            ResetTimer();
+
+            // Очищуємо всі елементи на Canvas
+            MyCanvas.Children.Clear();
+            _initialConnections.Clear();  // Очищення списку початкових стежків
+
+            // Перевіряємо, чи гра була на паузі, та знімаємо паузу
             if (_isPaused)
             {
                 _pauseOverlay.Visibility = Visibility.Hidden;
-                foreach (var hint in MyCanvas.Children.OfType<TextBlock>())
-                {
-                    hint.Visibility = Visibility.Visible;
-                }
-                _timer.Start();
                 _isPaused = false;
             }
 
-            // Удаляем старый оверлей паузы, если он есть
-            if (_pauseOverlay != null)
-            {
-                MyCanvas.Children.Remove(_pauseOverlay);
-                _pauseOverlay = null;
-            }
-
-            // Очищаем игровое поле и переменные
-            MyCanvas.Children.Clear();
+            // Генеруємо новий рівень
             _graph = new Graph();
-            _initialConnections.Clear(); // Очищаем список правильных стежков из предыдущей игры
+            _graph.GenerateLevel(size);
 
-            // Генерируем новый уровень
-            GenerateValidLevel(size);
-
-            // Рисуем новый граф и соединения
+            // Малюємо графік та з'єднання
             DrawGraph();
             DrawConnections();
 
-            // Генерируем подсказки для точек и стежков
-            DisplayHints();
+            // Показуємо підказки для нового рівня
+            DisplayHints(cellSize);
 
-            // Очищаем все точки и стежки после генерации подсказок
+            // Очищуємо всі точки та стежки після генерації підказок
             ClearStitchesAndDots();
-
-            // Очищаем текущие стежки пользователя
             _activeConnections.Clear();
 
-            // Пересчитываем правильное количество стежков
-            _correctStitchCount = _initialConnections.Count;
-            TargetStitchCountText.Text = $"Необходимое количество стежков: {_correctStitchCount}";
-
-            // Сбрасываем текущее количество стежков пользователя
-            UpdateCurrentStitchCount();
-
-            // Сбрасываем и запускаем таймер
-            ResetTimer();
+            // Перезапускаємо таймер
+            StartTimer();
         }
+
+
+
+
 
     }
 }
